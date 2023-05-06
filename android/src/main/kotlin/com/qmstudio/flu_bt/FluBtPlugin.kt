@@ -19,6 +19,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -327,13 +328,21 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
           var list = mutableListOf<BluetoothGattCharacteristic>()
           var arr = writeCharacteristics[gatt.device.address] ?: listOf()
           list.addAll(arr)
-          list.removeIf { it.uuid.equals(characteristic.uuid) }
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            list.removeIf { it.uuid.equals(characteristic.uuid) }
+          }else{
+            ///TODO
+          }
           writeCharacteristics[gatt.device.address] = list
 
           list = mutableListOf<BluetoothGattCharacteristic>()
           arr = writeWithoutResponseCharacteristics[gatt.device.address] ?: listOf()
           list.addAll(arr)
-          list.removeIf { it.uuid.equals(characteristic.uuid) }
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            list.removeIf { it.uuid.equals(characteristic.uuid) }
+          }else{
+            ///TODO
+          }
           writeWithoutResponseCharacteristics[gatt.device.address] = list
         }
       }
