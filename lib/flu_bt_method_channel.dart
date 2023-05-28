@@ -45,6 +45,7 @@ class MethodChannelFluBt extends FluBtPlatform {
           _centralStateController.sink.add(state);
           break;
         case "didReceiveData":
+          print("didReceiveDatadidReceiveDatadidReceiveData");
           Map info = call.arguments;
           String uuid = info["uuid"];
           String characteristicUUID = info["characteristicUUID"];

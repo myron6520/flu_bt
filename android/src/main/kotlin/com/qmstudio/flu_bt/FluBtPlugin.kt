@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothDevice.DEVICE_TYPE_DUAL
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
@@ -32,6 +33,9 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.util.UUID
 
 
 /** FluBtPlugin */
@@ -58,12 +62,12 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
             val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
             val bondState =
               intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR)
-            Log.e(TAG, "onReceive: $bondState", )
+            Log.e(TAG, "onReceive: $bondState")
             when (bondState) {
               BluetoothDevice.BOND_BONDED ->
                 connectDevice(device?.address ?:"")
               BluetoothDevice.BOND_BONDING -> {
-                Log.e(TAG, "onReceive: ${device?.address}", )
+                Log.e(TAG, "onReceive: ${device?.address}")
                 connectDevice(device?.address ?:"")
               }
               BluetoothDevice.BOND_NONE -> {
@@ -217,7 +221,6 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
   private val peripherals = mutableMapOf<String,BluetoothDevice>()
   private val bluetoothGatts = mutableMapOf<String,BluetoothGatt>()
   override fun onScanResult(callbackType: Int, result: ScanResult?) {
-    Log.e(TAG, "onScanResult: $result")
     if(result != null){
       val res = mapOf(
         "name" to (result.device?.name ?: ""),
@@ -230,7 +233,6 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
   }
 
   override fun onBatchScanResults(results: MutableList<ScanResult>?) {
-    Log.e(TAG, "onBatchScanResults: $results")
     if(!results.isNullOrEmpty()){
       val res = mutableListOf<Map<*,*>>()
       results.forEach {
@@ -281,10 +283,43 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         val uuid = gatt.device.address
         val writeCharacteristicList = mutableListOf<BluetoothGattCharacteristic>()
         val writeWithoutResponseCharacteristicsList = mutableListOf<BluetoothGattCharacteristic>()
+//        gatt.requestMtu(512)
         gatt.services.forEach {
           it.characteristics.forEach { characteristic ->
             if(characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY == BluetoothGattCharacteristic.PROPERTY_NOTIFY ){
               gatt.setCharacteristicNotification(characteristic,true)
+              var cccDescriptor: BluetoothGattDescriptor? = characteristic.getDescriptor(
+                UUID.fromString(
+                  "00002902-0000-1000-8000-00805f9b34fb"
+                ))
+
+              //0000fff4-0000-1000-8000-00805f9b34fb
+              if(cccDescriptor!=null&&characteristic.uuid.toString()=="0000fff4-0000-1000-8000-00805f9b34fb"){
+                Log.e(TAG, "onServicesDiscovered: ${characteristic.uuid}", )
+                if(!cccDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)){
+                  Log.e(TAG, "cccDescriptor:setValue error ")
+                }
+//                val idata = ByteArray(8)
+//                val buffer = ByteBuffer.wrap(idata).order(ByteOrder.LITTLE_ENDIAN)
+//                buffer.putShort(0, 6.toShort()) // 连接间隔最小值
+//
+//                buffer.putShort(2, 12.toShort()) // 连接间隔最大值
+//
+//                buffer.putShort(4, 0.toShort()) // 从机延迟
+//
+//                buffer.putShort(6, 400.toShort()) // 连接超时和监视超时
+//
+//                // 写入连接参数数据
+//                // 写入连接参数数据
+//                cccDescriptor.value = idata
+                if (!gatt.writeDescriptor(cccDescriptor)){
+                  Log.e(TAG, "gatt.writeDescriptor(cccDescriptor) error ")
+                }
+                Log.e(TAG, "gatt.writeDescriptor(cccDescriptor) success ")
+//                if(!gatt.writeDescriptor(cccDescriptor)){
+//                  Log.e(TAG, "gatt.writeDescriptor(cccDescriptor) error ")
+//                }
+              }
             }
             if(characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE == BluetoothGattCharacteristic.PROPERTY_WRITE ){
               writeCharacteristicList.add(characteristic)
@@ -314,6 +349,22 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       }
     }
 
+    override fun onDescriptorWrite(
+      gatt: BluetoothGatt?,
+      descriptor: BluetoothGattDescriptor?,
+      status: Int
+    ) {
+      super.onDescriptorWrite(gatt, descriptor, status)
+    }
+
+    override fun onCharacteristicRead(
+      gatt: BluetoothGatt?,
+      characteristic: BluetoothGattCharacteristic?,
+      status: Int
+    ) {
+      super.onCharacteristicRead(gatt, characteristic, status)
+    }
+
     override fun onCharacteristicWrite(
       gatt: BluetoothGatt?,
       characteristic: BluetoothGattCharacteristic?,
@@ -322,9 +373,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       super.onCharacteristicWrite(gatt, characteristic, status)
       if(gatt != null&&characteristic!=null){
         if(status == BluetoothGatt.GATT_SUCCESS ){
-          Log.e(TAG, "onCharacteristicWrite: ${characteristic?.uuid.toString()}")
         }else{
-          Log.e(TAG, "onCharacteristicWrite 失败: $status")
           var list = mutableListOf<BluetoothGattCharacteristic>()
           var arr = writeCharacteristics[gatt.device.address] ?: listOf()
           list.addAll(arr)
