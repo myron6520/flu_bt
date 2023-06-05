@@ -161,7 +161,8 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         if( device.type == DEVICE_TYPE_DUAL&&device.bondState == BluetoothDevice.BOND_NONE){
           device.createBond()
         }else{
-          device.connectGatt(appContext,true,gattCallback, BluetoothDevice.TRANSPORT_LE)
+          connectDevice(device.address)
+//          device.connectGatt(appContext,true,gattCallback, BluetoothDevice.TRANSPORT_LE)
         }
       }
       "disconnect"->{
@@ -208,7 +209,17 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
   }
   fun connectDevice(uuid:String){
     val device = peripherals[uuid]
-    device?.connectGatt(appContext,true,gattCallback, BluetoothDevice.TRANSPORT_LE)
+
+
+    val gattServer = device?.connectGatt(appContext,true,gattCallback, BluetoothDevice.TRANSPORT_LE)
+    gattServer?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      gattServer?.setPreferredPhy(
+        BluetoothDevice.PHY_LE_2M,
+        BluetoothDevice.PHY_LE_2M,
+        BluetoothDevice.PHY_OPTION_NO_PREFERRED
+      )
+    }
   }
 
   private fun invokeMethod(method:String, arguments:Any?){
@@ -295,23 +306,23 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
 
               //0000fff4-0000-1000-8000-00805f9b34fb
               if(cccDescriptor!=null&&characteristic.uuid.toString()=="0000fff4-0000-1000-8000-00805f9b34fb"){
-                Log.e(TAG, "onServicesDiscovered: ${characteristic.uuid}", )
+                Log.e(TAG, "onServicesDiscovered: ${characteristic.uuid}")
                 if(!cccDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)){
                   Log.e(TAG, "cccDescriptor:setValue error ")
                 }
-//                val idata = ByteArray(8)
-//                val buffer = ByteBuffer.wrap(idata).order(ByteOrder.LITTLE_ENDIAN)
-//                buffer.putShort(0, 6.toShort()) // 连接间隔最小值
-//
-//                buffer.putShort(2, 12.toShort()) // 连接间隔最大值
-//
-//                buffer.putShort(4, 0.toShort()) // 从机延迟
-//
-//                buffer.putShort(6, 400.toShort()) // 连接超时和监视超时
-//
-//                // 写入连接参数数据
-//                // 写入连接参数数据
-//                cccDescriptor.value = idata
+                val idata = ByteArray(8)
+                val buffer = ByteBuffer.wrap(idata).order(ByteOrder.LITTLE_ENDIAN)
+                buffer.putShort(0, 6.toShort()) // 连接间隔最小值
+
+                buffer.putShort(2, 12.toShort()) // 连接间隔最大值
+
+                buffer.putShort(4, 0.toShort()) // 从机延迟
+
+                buffer.putShort(6, 400.toShort()) // 连接超时和监视超时
+
+                // 写入连接参数数据
+                // 写入连接参数数据
+                cccDescriptor.value = idata
                 if (!gatt.writeDescriptor(cccDescriptor)){
                   Log.e(TAG, "gatt.writeDescriptor(cccDescriptor) error ")
                 }
