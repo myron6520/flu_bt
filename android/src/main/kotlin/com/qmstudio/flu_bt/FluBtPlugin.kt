@@ -63,16 +63,16 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
             val bondState =
               intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR)
             Log.e(TAG, "onReceive: $bondState")
-            when (bondState) {
-              BluetoothDevice.BOND_BONDED ->
-                connectDevice(device?.address ?:"")
-              BluetoothDevice.BOND_BONDING -> {
-                Log.e(TAG, "onReceive: ${device?.address}")
-                connectDevice(device?.address ?:"")
-              }
-              BluetoothDevice.BOND_NONE -> {
-              }
-            }
+//            when (bondState) {
+//              BluetoothDevice.BOND_BONDED ->
+//                connectDevice(device?.address ?:"")
+//              BluetoothDevice.BOND_BONDING -> {
+//                Log.e(TAG, "onReceive: ${device?.address}")
+//                connectDevice(device?.address ?:"")
+//              }
+//              BluetoothDevice.BOND_NONE -> {
+//              }
+//            }
           }
           BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED->{
             val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
@@ -158,7 +158,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
           result.success(mapOf("status" to false,"code" to 1,"msg" to "找不到外设"))
           return
         }
-        if( device.type == DEVICE_TYPE_DUAL&&device.bondState == BluetoothDevice.BOND_NONE){
+        if( false&&device.type == DEVICE_TYPE_DUAL&&device.bondState == BluetoothDevice.BOND_NONE){
           device.createBond()
         }else{
           connectDevice(device.address)
@@ -296,41 +296,52 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         val writeWithoutResponseCharacteristicsList = mutableListOf<BluetoothGattCharacteristic>()
 //        gatt.requestMtu(512)
         gatt.services.forEach {
-          it.characteristics.forEach { characteristic ->
+          for (characteristic in it.characteristics){
+            if(!characteristic.uuid.toString().endsWith("0000-1000-8000-00805f9b34fb")){
+              continue
+            }
             if(characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY == BluetoothGattCharacteristic.PROPERTY_NOTIFY ){
-              gatt.setCharacteristicNotification(characteristic,true)
-              var cccDescriptor: BluetoothGattDescriptor? = characteristic.getDescriptor(
-                UUID.fromString(
-                  "00002902-0000-1000-8000-00805f9b34fb"
-                ))
+              val enable = gatt.setCharacteristicNotification(characteristic,true)
+              if(enable){
+                val cccDescriptor: BluetoothGattDescriptor? = characteristic.getDescriptor(
+                        UUID.fromString(
+                                "00002902-0000-1000-8000-00805f9b34fb"
+                        ))
+                //0000fff4-0000-1000-8000-00805f9b34fb
+                if(cccDescriptor!=null){
+                  Log.e(TAG, "onServicesDiscovered: ${characteristic.uuid}")
+//                  if(!cccDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)){
+//                    Log.e(TAG, "cccDescriptor:setValue error ")
+//                  }
+                  val idata = ByteArray(8)
+                  val buffer = ByteBuffer.wrap(idata).order(ByteOrder.LITTLE_ENDIAN)
 
-              //0000fff4-0000-1000-8000-00805f9b34fb
-              if(cccDescriptor!=null&&characteristic.uuid.toString()=="0000fff4-0000-1000-8000-00805f9b34fb"){
-                Log.e(TAG, "onServicesDiscovered: ${characteristic.uuid}")
-                if(!cccDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)){
-                  Log.e(TAG, "cccDescriptor:setValue error ")
+                  buffer.putShort(0, 6.toShort()) // 连接间隔最小值
+
+                  buffer.putShort(2, 12.toShort()) // 连接间隔最大值
+
+                  buffer.putShort(4, 0.toShort()) // 从机延迟
+
+                  buffer.putShort(6, 400.toShort()) // 连接超时和监视超时
+
+
+                  if(!cccDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)){
+                    Log.e(TAG, "cccDescriptor:setValue error ")
+                  }
+                  // 写入连接参数数据
+                  // 写入连接参数数据
+//                  cccDescriptor.value = idata
+                  if (!gatt.writeDescriptor(cccDescriptor)){
+                    Log.e(TAG, "gatt.writeDescriptor(cccDescriptor) error ")
+                  }else{
+                    Log.e(TAG, "gatt.writeDescriptor(cccDescriptor) success ")
+                  }
+
                 }
-                val idata = ByteArray(8)
-                val buffer = ByteBuffer.wrap(idata).order(ByteOrder.LITTLE_ENDIAN)
-                buffer.putShort(0, 6.toShort()) // 连接间隔最小值
-
-                buffer.putShort(2, 12.toShort()) // 连接间隔最大值
-
-                buffer.putShort(4, 0.toShort()) // 从机延迟
-
-                buffer.putShort(6, 400.toShort()) // 连接超时和监视超时
-
-                // 写入连接参数数据
-                // 写入连接参数数据
-                cccDescriptor.value = idata
-                if (!gatt.writeDescriptor(cccDescriptor)){
-                  Log.e(TAG, "gatt.writeDescriptor(cccDescriptor) error ")
-                }
-                Log.e(TAG, "gatt.writeDescriptor(cccDescriptor) success ")
-//                if(!gatt.writeDescriptor(cccDescriptor)){
-//                  Log.e(TAG, "gatt.writeDescriptor(cccDescriptor) error ")
-//                }
               }
+
+
+
             }
             if(characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE == BluetoothGattCharacteristic.PROPERTY_WRITE ){
               writeCharacteristicList.add(characteristic)
