@@ -176,6 +176,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         gatt.disconnect()
       }
       "write"->{
+        Log.e(TAG, "onMethodCall: 写入数据", )
         val arguments = call.arguments as Map<*, *>
         val uuid = arguments["uuid"] ?: ""
         val data = arguments["data"] as ByteArray
@@ -211,7 +212,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
     val device = peripherals[uuid]
 
 
-    val gattServer = device?.connectGatt(appContext,true,gattCallback, BluetoothDevice.TRANSPORT_LE)
+    val gattServer = device?.connectGatt(appContext,false,gattCallback, BluetoothDevice.TRANSPORT_LE)
     gattServer?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       gattServer?.setPreferredPhy(
@@ -393,6 +394,8 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       status: Int
     ) {
       super.onCharacteristicWrite(gatt, characteristic, status)
+
+      Log.e(TAG, "onDescriptorWrite: 写入数据完成  $status", )
       if(gatt != null&&characteristic!=null){
         if(status == BluetoothGatt.GATT_SUCCESS ){
         }else{
