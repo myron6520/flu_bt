@@ -354,6 +354,8 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         }
         writeCharacteristics[uuid] = writeCharacteristicList
         writeWithoutResponseCharacteristics[uuid] = writeWithoutResponseCharacteristicsList
+
+        invokeMethod("onBluetoothReady",mapOf("uuid" to gatt.device.address))
       }
     }
 
@@ -394,9 +396,10 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       status: Int
     ) {
       super.onCharacteristicWrite(gatt, characteristic, status)
-
-      Log.e(TAG, "onDescriptorWrite: 写入数据完成  $status", )
+      Log.e(TAG, "onCharacteristicWrite: 写入数据完成  $status", )
       if(gatt != null&&characteristic!=null){
+        invokeMethod("onCharacteristicWrite",mapOf("uuid" to gatt.device.address,
+                "characteristicUUID" to characteristic.uuid.toString(), "status" to status))
         if(status == BluetoothGatt.GATT_SUCCESS ){
         }else{
           var list = mutableListOf<BluetoothGattCharacteristic>()
@@ -422,5 +425,4 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       }
     }
   }
-
 }

@@ -51,7 +51,12 @@ class FluBt {
           Uint8List data = info["data"];
           _msgController.sink.add(Message(uuid, characteristicUUID, data));
           break;
+        // case "onBluetoothReady":
+        //   break;
+        // case "onCharacteristicWrite":
+        //   break;
         default:
+          _methodController.sink.add(call);
           break;
       }
     });
@@ -69,6 +74,9 @@ class FluBt {
   late final StreamController<Message> _msgController =
       StreamController.broadcast();
   Stream<Message> get msgStream => _msgController.stream;
+  late final StreamController<MethodCall> _methodController =
+      StreamController.broadcast();
+  Stream<MethodCall> get methodStream => _methodController.stream;
 
   late final Map<String, Peripheral> _peripherals = {};
   List<Peripheral> get connectedPeripheral => _peripherals.values
