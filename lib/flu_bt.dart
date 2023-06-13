@@ -20,8 +20,7 @@ class FluBt {
           List arguments = call.arguments;
           for (var e in arguments) {
             String uuid = e['uuid'] ?? "";
-            Peripheral peripheral = _peripherals[uuid] ?? Peripheral();
-            peripheral.makeValue(e);
+            Peripheral peripheral = _peripherals[uuid] ?? Peripheral.fromMap(e);
             _peripherals[uuid] = peripheral;
           }
           List<Peripheral> devices = _peripherals.values.toList();
@@ -101,6 +100,7 @@ class FluBt {
     _peripherals.removeWhere((key, value) =>
         value.state == Peripheral.STATE_DISCONNECTED ||
         value.state == Peripheral.STATE_DISCONNECTING);
+    print("_peripherals:${_peripherals.length}");
     Map result = await methodChannel.invokeMethod("startScan");
     return Result.fromMap(result);
   }

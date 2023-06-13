@@ -38,11 +38,11 @@ class _BLEListPageState extends State<BLEListPage> {
             peripheral.state == Peripheral.STATE_CONNECTED ? "断开连接" : "连接",
             width: 70,
             height: 35, onClick: () {
-          AppPlugin.fluBt.stopScan();
           if (peripheral.state == Peripheral.STATE_CONNECTED) {
             AppPlugin.fluBt.disconnect(peripheral.uuid);
             setState(() {});
           } else {
+            AppPlugin.fluBt.stopScan();
             QM.showLoading(msg: "连接中");
             peripheralToConnect = peripheral;
             AppPlugin.fluBt.connect(peripheral.uuid);
