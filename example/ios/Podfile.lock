@@ -2,20 +2,26 @@ PODS:
   - flu_bt (0.0.1):
     - Flutter
   - Flutter (1.0.0)
+  - permission_handler_apple (9.0.4):
+    - Flutter
 
 DEPENDENCIES:
   - flu_bt (from `.symlinks/plugins/flu_bt/ios`)
   - Flutter (from `Flutter`)
+  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
 
 EXTERNAL SOURCES:
   flu_bt:
     :path: ".symlinks/plugins/flu_bt/ios"
   Flutter:
     :path: Flutter
+  permission_handler_apple:
+    :path: ".symlinks/plugins/permission_handler_apple/ios"
 
 SPEC CHECKSUMS:
   flu_bt: 8d00eef4aff926b2da37d3ae9eca255eb8a7ff4e
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
+  permission_handler_apple: 44366e37eaf29454a1e7b1b7d736c2cceaeb17ce
 
 PODFILE CHECKSUM: 663715e941f9adb426e33bf9376914006f9ea95b
 

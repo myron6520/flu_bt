@@ -47,5 +47,15 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>连接周边设备</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>连接周边设备</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>发现周边设备</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>发现周边设备</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>发现周边设备</string>
 </dict>
 </plist>

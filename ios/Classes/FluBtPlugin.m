@@ -181,6 +181,9 @@
     for (CBService *service in peripheral.services) {
         [peripheral discoverCharacteristics:nil forService:service];
     }
+    [self invokeMethod:@"onBluetoothReady" arguments:@{
+        @"uuid":peripheral.identifier.UUIDString,
+    }];
 }
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error{
     NSArray *wirteArr = writeCharacteristics[peripheral];
@@ -215,6 +218,11 @@
     }];
 }
 - (void)peripheral:(CBPeripheral *)peripheral didWriteValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error{
+    [self invokeMethod:@"onCharacteristicWrite" arguments:@{
+        @"uuid":peripheral.identifier.UUIDString,
+        @"characteristicUUID":characteristic.UUID.UUIDString,
+        @"status":@(error ==nil?0:257),
+    }];
     if(error){
         NSLog(@"写入数据失败:%@ 到特征:%@ 错误：%@",characteristic.value,characteristic.UUID.UUIDString,error);
         NSArray *writeArr = writeCharacteristics[peripheral];
