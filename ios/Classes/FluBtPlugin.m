@@ -143,7 +143,8 @@
             }
         }
         BOOL isWNR = (characteristic.properties &CBCharacteristicPropertyWriteWithoutResponse) == CBCharacteristicPropertyWriteWithoutResponse;
-        [peripheral writeValue:data.data forCharacteristic:characteristic type:isWNR?CBCharacteristicWriteWithoutResponse:CBCharacteristicWriteWithResponse];
+//        [peripheral writeValue:data.data forCharacteristic:characteristic type:isWNR?CBCharacteristicWriteWithoutResponse:CBCharacteristicWriteWithResponse];
+        [peripheral writeValue:data.data forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
         result(@{@"status":@YES,@"code":@0,@"msg":@"操作成功"});
         return;
     }
