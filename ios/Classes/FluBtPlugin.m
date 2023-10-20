@@ -50,15 +50,16 @@
         }
         return;
     }
+    if([@"isScanning" isEqualToString:call.method]){
+        result(@{@"status":@(manager.isScanning)});
+        return;
+    }
     if([@"startScan" isEqualToString:call.method]){
         if(manager.state != CBManagerStatePoweredOn){
             result(@{@"status":@NO,@"code":@1001,@"msg":@"蓝牙未开启"});
             return;
         }
-        if(manager.isScanning){
-            result(@{@"status":@YES});
-            return;
-        }
+        [manager stopScan];
         [manager scanForPeripheralsWithServices:nil options:nil];
         result(@{@"status":@YES});
         return;

@@ -133,6 +133,8 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       "getCentralState"->result.success(if(bluetoothAdapter.isEnabled) Define.CENTRAL_STATE_POWER_ON else Define.CENTRAL_STATE_POWER_OFF)
       "makeEnable"->result.success(bluetoothAdapter.enable())
       "gotoSettings"-> activity.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+      "isScanning"->result.success(isScanning)
+      ///Android BLE does not support stopping/starting scans more than 5 times in 30 seconds.
       "startScan"->{
         if(isScanning){
           return
@@ -264,7 +266,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
     }
   }
   override fun onScanFailed(errorCode: Int) {
-    isScanning = false
+    isScanning = errorCode == ScanCallback.SCAN_FAILED_ALREADY_STARTED
     Log.e(TAG, "onScanFailed: $errorCode")
   }
   private val writeCharacteristics:MutableMap<String,List<BluetoothGattCharacteristic>> = mutableMapOf()
