@@ -153,7 +153,7 @@
     }
     if([@"startAdvertising" isEqualToString:call.method]){
         if(peripheralManager.state == CBManagerStatePoweredOn){
-            CBUUID *serviceUUID = [CBUUID UUIDWithString:@"FFAA"];
+            CBUUID *serviceUUID = [CBUUID UUIDWithString:@"68753A44-4D6F-1226-9C60-0050E4C00067"];
             CBMutableService *service = [[CBMutableService alloc] initWithType:serviceUUID primary:YES];
             [peripheralManager addService:service];
             
@@ -162,7 +162,7 @@
             NSMutableData *manufacturerData = [NSMutableData dataWithBytes:&manufacturerID length:sizeof(manufacturerID)];
                 [manufacturerData appendBytes:dataBytes length:sizeof(dataBytes)];
             [peripheralManager startAdvertising:@{
-//                CBAdvertisementDataServiceUUIDsKey : @[serviceUUID],
+                CBAdvertisementDataServiceUUIDsKey : @[serviceUUID],
 //                CBAdvertisementDataManufacturerDataKey : manufacturerData,
                 CBAdvertisementDataLocalNameKey:@"Myron BLE",
             }];
