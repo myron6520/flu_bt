@@ -1,9 +1,10 @@
 #import "FluBtPlugin.h"
 #import <CoreBluetooth/CoreBluetooth.h>
 
-@interface FluBtPlugin()<CBCentralManagerDelegate,CBPeripheralDelegate>
+@interface FluBtPlugin()<CBCentralManagerDelegate,CBPeripheralDelegate,CBPeripheralManagerDelegate>
 {
     CBCentralManager *manager;
+    CBPeripheralManager *peripheralManager;
     NSMutableDictionary<NSString*,CBPeripheral*> *peripherals;
     NSMutableDictionary<CBPeripheral*,NSArray<CBCharacteristic*>*>* writeCharacteristics;
     NSMutableDictionary<CBPeripheral*,NSArray<CBCharacteristic*>*>* writeWithoutResponseCharacteristics;
@@ -22,6 +23,7 @@
 -(instancetype)initWithChannel:(FlutterMethodChannel *)channel{
     if(self = [super init]){
         manager = [[CBCentralManager alloc] initWithDelegate:self queue:nil];
+        peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:self queue:nil];
         self.channel = channel;
         peripherals = [NSMutableDictionary dictionary];
         writeCharacteristics = [NSMutableDictionary dictionary];
@@ -149,7 +151,38 @@
         result(@{@"status":@YES,@"code":@0,@"msg":@"操作成功"});
         return;
     }
+    if([@"startAdvertising" isEqualToString:call.method]){
+        if(peripheralManager.state == CBManagerStatePoweredOn){
+            CBUUID *serviceUUID = [CBUUID UUIDWithString:@"FFAA"];
+            CBMutableService *service = [[CBMutableService alloc] initWithType:serviceUUID primary:YES];
+            [peripheralManager addService:service];
+            
+            uint16_t manufacturerID = 0xFFFF;
+            uint8_t dataBytes[] = {0x01, 0x02, 0x03};
+            NSMutableData *manufacturerData = [NSMutableData dataWithBytes:&manufacturerID length:sizeof(manufacturerID)];
+                [manufacturerData appendBytes:dataBytes length:sizeof(dataBytes)];
+            [peripheralManager startAdvertising:@{
+//                CBAdvertisementDataServiceUUIDsKey : @[serviceUUID],
+//                CBAdvertisementDataManufacturerDataKey : manufacturerData,
+                CBAdvertisementDataLocalNameKey:@"Myron BLE",
+            }];
+            result(@{@"status":@YES,@"code":@0,@"msg":@"操作成功"});
+        }
+        return;
+    }
+    if([@"stopAdvertising" isEqualToString:call.method]){
+        if(peripheralManager.isAdvertising){
+            [peripheralManager stopAdvertising];
+        }
+        result(@{@"status":@YES,@"code":@0,@"msg":@"操作成功"});
+        return;
+    }
     result(FlutterMethodNotImplemented);
+}
+- (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral{
+    if(peripheral.state == CBManagerStatePoweredOn){
+        
+    }
 }
 -(void)postPeripheralState:(CBPeripheral *)peripheral{
     [self invokeMethod:@"peripheralStateChanged" arguments:@{
@@ -162,6 +195,7 @@
 }
 - (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary<NSString *,id> *)advertisementData RSSI:(NSNumber *)RSSI{
     NSString *uuid = peripheral.identifier.UUIDString;
+    NSLog(@"advertisementData:%@ ",advertisementData);
     peripherals[uuid] = peripheral;
     [self invokeMethod:@"didDiscoverPeripheral" arguments:@[@{
         @"name":peripheral.name == nil?@"":peripheral.name,

@@ -130,6 +130,16 @@ class FluBt {
     return Result.fromMap(result);
   }
 
+  Future<Result> startAdvertising() async {
+    Map result = await methodChannel.invokeMethod("startAdvertising");
+    return Result.fromMap(result);
+  }
+
+  Future<Result> stopAdvertising() async {
+    Map result = await methodChannel.invokeMethod("stopAdvertising");
+    return Result.fromMap(result);
+  }
+
   Future<void> gotoSettings() async =>
       await methodChannel.invokeMethod("gotoSettings");
   Future<bool> makeEnable() async {

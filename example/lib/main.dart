@@ -210,6 +210,18 @@ class _MyAppState extends State<MyApp> {
         ),
         body: [
           ThemeButton(
+            childBuilder: (_) => "startAdvertising".toText(),
+            onClick: () => AppPlugin.fluBt.startAdvertising(),
+            width: 90,
+            backgroundColor: Colors.blue,
+          ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          ThemeButton(
+            childBuilder: (_) => "stopAdvertising".toText(),
+            onClick: () => AppPlugin.fluBt.stopAdvertising(),
+            width: 90,
+            backgroundColor: Colors.blue,
+          ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          ThemeButton(
             childBuilder: (_) => "测试".toText(),
             onClick: () => doTest(),
             width: 90,
