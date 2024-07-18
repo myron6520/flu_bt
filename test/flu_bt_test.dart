@@ -1,3 +1,4 @@
+import 'package:flu_bt/flu_writer.dart';
 import 'package:flu_bt/message.dart';
 import 'package:flu_bt/peripheral.dart';
 import 'package:flu_bt/result.dart';
@@ -9,9 +10,7 @@ import 'package:flu_bt/flu_bt_platform_interface.dart';
 import 'package:flu_bt/flu_bt_method_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-class MockFluBtPlatform
-    with MockPlatformInterfaceMixin
-    implements FluBtPlatform {
+class MockFluBtPlatform with MockPlatformInterfaceMixin implements FluBtPlatform {
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
 
@@ -82,6 +81,11 @@ void main() {
   final FluBtPlatform initialPlatform = FluBtPlatform.instance;
 
   test('$MethodChannelFluBt is the default instance', () {
+    var singleton1 = FluWriter();
+    var singleton2 = FluWriter.instance;
+
+    // 验证两个实例是否相同
+    print(identical(singleton1, singleton2));
     expect(initialPlatform, isInstanceOf<MethodChannelFluBt>());
   });
 
