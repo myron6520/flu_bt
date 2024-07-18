@@ -54,16 +54,19 @@ class FluWriter {
       _sendingInfos[uuid] = true;
       FluCmd cmd = cmds.first;
       List<int> dataToWrite = cmd.cmd;
-      int endIdx = min(20, dataToWrite.length);
-      List<int> data = dataToWrite.sublist(0, endIdx);
-      fluBt.write(peripheral.uuid, "", Uint8List.fromList(data));
-      dataToWrite.removeRange(0, endIdx);
       if (dataToWrite.isEmpty) {
         cmds.removeAt(0);
         if (cmd.interval > Duration.zero) {
           await Future.delayed(cmd.interval);
         }
+        _sendingInfos[uuid] = false;
+        _doSend(uuid);
+        return;
       }
+      int endIdx = min(20, dataToWrite.length);
+      List<int> data = dataToWrite.sublist(0, endIdx);
+      fluBt.write(peripheral.uuid, "", Uint8List.fromList(data));
+      dataToWrite.removeRange(0, endIdx);
     } else {
       _sendingInfos[uuid] = false;
     }
