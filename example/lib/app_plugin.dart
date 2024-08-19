@@ -1,5 +1,6 @@
 import 'package:flu_bt/flu_bt.dart';
+import 'package:flu_bt/flu_writer.dart';
 
 class AppPlugin {
-  static FluBt fluBt = FluBt();
+  static FluBt fluBt = FluWriter().fluBt;
 }

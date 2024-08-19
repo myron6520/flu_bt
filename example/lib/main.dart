@@ -1,16 +1,19 @@
 // ignore_for_file: prefer_const_constructors, use_build_context_synchronously
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:flu_bt/define.dart';
 import 'package:flu_bt_example/app_plugin.dart';
 import 'package:flu_bt_example/ble_list_page.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flu_bt/flu_bt.dart';
+import 'package:label_print/label_print.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qm_dart_ex/qm_dart_ex.dart';
 import 'package:qm_widget/dialog/qm_alert_widget.dart';
@@ -19,6 +22,7 @@ import 'package:qm_widget/widgets/qm_app_bar.dart';
 import 'package:gbk_codec/gbk_codec.dart';
 
 import 'app_color.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 enum PrintAlign {
   left,
@@ -72,6 +76,13 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     methodSubscription =
         AppPlugin.fluBt.methodStream.listen((method) => onMethodCall(method));
+    LabelPrintConfig.instance.fluBt = AppPlugin.fluBt;
+    LabelPrintConfig.instance.gotoConnectBluetooth = () {
+      return Navigator.of(App.navigatorKey.currentContext!)
+          .push(CupertinoPageRoute(
+        builder: (context) => BLEListPage(),
+      ));
+    };
   }
 
   void onMethodCall(MethodCall call) {
@@ -150,31 +161,33 @@ class _MyAppState extends State<MyApp> {
 
   void doTest() {
     List<int> content = [];
-    content.addAll(buildTitle("微兔打印测试这个是测试是测试啊", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.addAll(buildTitle("微兔便利店", width: 58));
-    content.add(0x0a);
+    // content.addAll(buildTitle("微兔打印测试这个是测试是测试啊", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.addAll(buildTitle("微兔便利店", width: 58));
+    // content.add(0x0a);
+    content = base64.decode(
+        "G0UBHSEiG2EAICAg1sbX97WlICAgCgobRQAdIREbYQDXwMyousUgICAgICAgILTzzPwg0KHXwDEKG0UAHSERG2EA08OyzcjLyv0gICAgICAgICAgICAgICAzChtFAB0hAC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQobRQAdIQAbYQCyy8a3ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDK/cG/ChtFAB0hERthALbguea48bLLxrejqLTzt92jqSAgICAgMSAgo6jOosCxo6kgICAgICAgICAgICAgICAgICAKG0UAHSEBG2EALSDJs7LovbQqMSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAobRQAdIQAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KG0UAHSEBG2EA1fu1pbG416I6suLK1NK7z8IgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAobRQAdIQAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KG0UAHSEAG2EAtqm1pbrFICAgICAgICAgICAgICAgICAgICAgICAgIDAyNDA1MTIwMDAwMjUxNAobRQAdIQAbYQC0tL2oyrG85CAgICAgICAgICAgICAgICAgICAyMDI0LTA4LTE5IDE1OjE0OjA0Cg==");
     doPost(content);
   }
 
@@ -226,9 +239,16 @@ class _MyAppState extends State<MyApp> {
             onClick: () => doTest(),
             width: 90,
             backgroundColor: Colors.blue,
-          ).toRow(mainAxisAlignment: MainAxisAlignment.center)
+          ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          ThemeButton(
+            childBuilder: (_) => "标签打印".toText(),
+            onClick: () => App.push(LabelPrintSettingsPage()),
+            width: 90,
+            backgroundColor: Colors.blue,
+          ).toRow(mainAxisAlignment: MainAxisAlignment.center),
         ].toColumn(mainAxisAlignment: MainAxisAlignment.center),
       ),
+      builder: EasyLoading.init(),
     );
   }
 
