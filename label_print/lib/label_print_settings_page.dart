@@ -363,6 +363,20 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
   }
 
   void showCmdTypeSelector() {
+    final list = [PrintProtocol.TSPL, PrintProtocol.CPCL];
+    WTBottomSheetContailer(
+        title: "选择打印指令",
+        child: WTSelectorWidget(
+          length: 2,
+          getTitleFunc: (idx) => list[idx].strVal,
+          getIsSelectedFunc: (idx) => settings.protocol == list[idx],
+          onSelected: (idx) {
+            settings.protocol = list[idx];
+            setState(() {});
+            onSettingsChanged();
+          },
+        )).show(context);
+    return;
     showModalBottomSheet(
       backgroundColor: Colors.transparent,
       context: context,
