@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flu_bt/define.dart';
 import 'package:flu_bt/message.dart';
@@ -120,6 +121,21 @@ class MethodChannelFluBt extends FluBtPlatform {
   Future<Result> disconnect(String uuid) async {
     Map result = await methodChannel.invokeMethod("disconnect", {"uuid": uuid});
     return Result.fromMap(result);
+  }
+
+  @override
+  Future<int> getMtu() async {
+    if (Platform.isAndroid) {
+      int result = await methodChannel.invokeMethod("getMtu") ?? 23;
+      return result;
+    } else {
+      return 23;
+    }
+  }
+
+  @override
+  void requestMtu(String uuid, int mtu) async {
+    await methodChannel.invokeMethod("requestMtu", {"uuid": uuid, "mtu": mtu});
   }
 
   @override

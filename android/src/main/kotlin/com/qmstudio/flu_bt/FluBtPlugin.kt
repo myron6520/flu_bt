@@ -55,7 +55,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
   private lateinit var activity: Activity
 
   private val mBroadcastReceiver:BroadcastReceiver = object :BroadcastReceiver(){
-    override fun onReceive(context: Context?, intent: Intent?) {
+    override fun onReceive(context: Context?, intent: Intent?) { 
       if(intent != null){
         when (intent.action){
           BluetoothDevice.ACTION_BOND_STATE_CHANGED->{
@@ -207,6 +207,40 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         characteristic.value = data
         gatt.writeCharacteristic(characteristic)
       }
+      "getMtu" -> {
+        val arguments = call.arguments as Map<*, *>
+        val uuid = arguments["uuid"] as? String
+        if (uuid == null) {
+          result.success(mapOf("status" to false, "code" to 1, "msg" to "设备UUID不能为空"))
+          return
+        }
+
+        val gatt = bluetoothGatts[uuid]
+        if (gatt == null) {
+          result.success(mapOf("status" to false, "code" to 2, "msg" to "设备未连接"))
+          return
+        }
+
+        val mtu = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+          mtuSizes[uuid] ?: 23
+//          gatt.getMtu()  // Android 10及以上可直接获取
+        } else {
+          mtuSizes[uuid] ?: 23  // 从记录中获取，如果没有则返回默认值23
+        }
+
+        result.success(mapOf(
+          "status" to true,
+          "mtu" to mtu,
+          "maxDataLength" to (mtu - 3)
+        ))
+      }
+      "requestMtu"->{
+        val arguments = call.arguments as Map<*, *>
+        val uuid = arguments["uuid"] ?: ""
+        val mtu = (arguments["mtu"] as Number).toInt() 
+        val gatt = bluetoothGatts[uuid]
+        gatt?.requestMtu(mtu)
+      }
       else->result.notImplemented()
     }
   }
@@ -257,11 +291,6 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         ))
         peripherals[it.device.address] = it.device
       }
-//       val res =  results.map { mapOf(
-//        "name" to (it.device?.name ?: ""),
-//        "rssi" to (it.rssi),
-//        "uuid" to it.device.address
-//      ) }
       invokeMethod("didDiscoverPeripheral", listOf(res))
     }
   }
@@ -272,7 +301,24 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
   private val writeCharacteristics:MutableMap<String,List<BluetoothGattCharacteristic>> = mutableMapOf()
   private val writeWithoutResponseCharacteristics:MutableMap<String,List<BluetoothGattCharacteristic>> = mutableMapOf()
   private val peripheralStateInfos = mutableMapOf<String,Int>()
+  private val mtuSizes = mutableMapOf<String, Int>()
   private val gattCallback: BluetoothGattCallback = object :BluetoothGattCallback(){
+    override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+      super.onMtuChanged(gatt,mtu, status)
+      if(gatt != null){
+        val uuid = gatt.device.address
+        mtuSizes[uuid] = mtu
+        Log.e(TAG, "MTU changed to: $mtu, actual data length: ${mtu - 3}")
+
+        // 通知Flutter层MTU变化
+        invokeMethod("onMtuChanged", mapOf(
+          "status" to (status == BluetoothGatt.GATT_SUCCESS),
+          "uuid" to uuid,
+          "mtu" to mtu,
+          "maxDataLength" to (mtu - 3)
+        ))
+      }
+    }
     override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
       Log.e(TAG, "onConnectionStateChange: $status to $newState")
       if(gatt != null){
@@ -297,7 +343,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         val uuid = gatt.device.address
         val writeCharacteristicList = mutableListOf<BluetoothGattCharacteristic>()
         val writeWithoutResponseCharacteristicsList = mutableListOf<BluetoothGattCharacteristic>()
-//        gatt.requestMtu(512)
+        // gatt.requestMtu(512)
         gatt.services.forEach {
           for (characteristic in it.characteristics){
             if(!characteristic.uuid.toString().endsWith("0000-1000-8000-00805f9b34fb")){
@@ -359,6 +405,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
 
         invokeMethod("onBluetoothReady",mapOf("uuid" to gatt.device.address))
       }
+
     }
 
     override fun onCharacteristicChanged(

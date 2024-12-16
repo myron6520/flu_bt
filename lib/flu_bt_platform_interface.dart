@@ -59,6 +59,14 @@ abstract class FluBtPlatform extends PlatformInterface {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
 
+  Future<int> getMtu() async {
+    throw UnimplementedError('platformVersion() has not been implemented.');
+  }
+
+  void requestMtu(String uuid, int mtu) async {
+    throw UnimplementedError('platformVersion() has not been implemented.');
+  }
+
   Future<Result> disconnect(String uuid) async {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
