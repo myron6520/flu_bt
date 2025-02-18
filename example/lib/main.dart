@@ -90,14 +90,17 @@ class _MyAppState extends State<MyApp> {
       debugPrint("onBluetoothReady");
     }
     if (call.method == "onCharacteristicWrite") {
+      // debugPrint("onCharacteristicWrite:${DateTime.now().millisecondsSinceEpoch - startTime.millisecondsSinceEpoch}");
       doSend();
     }
   }
 
   List<int> dataToWrite = [];
+  late DateTime startTime;
   void doSend() {
+    startTime = DateTime.now();
     if (dataToWrite.isNotEmpty) {
-      int endIdx = min(20, dataToWrite.length);
+      int endIdx = min(142, dataToWrite.length);
       List<int> data = dataToWrite.sublist(0, endIdx);
       dataToWrite.removeRange(0, endIdx);
       for (var peripheral in AppPlugin.fluBt.connectedPeripheral) {
@@ -160,7 +163,10 @@ class _MyAppState extends State<MyApp> {
   }
 
   void doTest() {
-    List<int> content = [];
+    List<int> content = List.generate(
+      1,
+      (index) => index,
+    );
     // content.addAll(buildTitle("微兔打印测试这个是测试是测试啊", width: 58));
     // content.addAll(buildTitle("微兔便利店", width: 58));
     // content.addAll(buildTitle("微兔便利店", width: 58));
@@ -186,8 +192,8 @@ class _MyAppState extends State<MyApp> {
     // content.addAll(buildTitle("微兔便利店", width: 58));
     // content.addAll(buildTitle("微兔便利店", width: 58));
     // content.add(0x0a);
-    content = base64.decode(
-        "G0UBHSEiG2EBye7b2ryqz+mx48D7teoKChtFAB0hABthAcnu29q8qs/psePA+7Xqu7bTrcTjo6zQu9C7u925y6Osu7bTrc/CtM654sHZILu2063E4woKCgobbQ==");
+    // content = base64.decode(
+    //     "G0UBHSEiG2EBye7b2ryqz+mx48D7teoKChtFAB0hABthAcnu29q8qs/psePA+7Xqu7bTrcTjo6zQu9C7u925y6Osu7bTrc/CtM654sHZILu2063E4woKCgobbQ==");
     doPost(content);
   }
 

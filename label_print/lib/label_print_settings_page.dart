@@ -89,6 +89,8 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
                     return;
                   }
                 }
+              } else {
+                return;
               }
               await LabelPrintConfig.instance.gotoConnectBluetooth?.call();
               setState(() {});
