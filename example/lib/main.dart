@@ -7,8 +7,11 @@ import 'dart:math';
 import 'package:flu_bt/define.dart';
 import 'package:flu_bt_example/app_plugin.dart';
 import 'package:flu_bt_example/ble_list_page.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flu_bt_example/print_tool/line.dart';
+import 'package:flu_bt_example/print_tool/page.dart';
+import 'package:flutter/cupertino.dart' hide Page, Text, Align, TextSpan;
+import 'package:flutter/material.dart'
+    hide Page, Text, Align, Divider, TextSpan;
 import 'dart:async';
 
 import 'package:flutter/services.dart';
@@ -162,39 +165,75 @@ class _MyAppState extends State<MyApp> {
     return Uint8List.fromList(content);
   }
 
+  void doTestBase64() {
+    final str =
+        "G0UBHSEAG2EBUHJvZHVjdGlvbiBvcmRlcgobRQAdIQAbYQBOdW1iZXIgb2YgZGluZXJzIDAwMDQKG0UAHSEAG2EATWVhbCBwaWNrdXAgbnVtYmVyICAxNSAgChtFAB0hAC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tChtFAB0hABthAERpc2ggICAgICAgICAgICAgICAgICAgIFF1YW50aXR5ChtFAB0hABthAHRlc3QgWDEKG0UAHSEAG2EAdGVzdCBYMgobRQAdIQAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQobRQAdIQAbYQBPcmRlciBudW1iZXIgICAgIDAyNTAzMjYwMDAwNjg0NgobRQAdIQAbYQBDcmVhdGlvbiB0aW1lMjAyNS0wMy0yNiAxMTo0NzoyNgobRQAdIQAKG0UAHSEAChtFAB0hAAo=";
+
+    final data = base64.decode(str);
+    doPost(data.toList());
+  }
+
   void doTest() {
-    List<int> content = List.generate(
-      1,
-      (index) => index,
-    );
-    // content.addAll(buildTitle("微兔打印测试这个是测试是测试啊", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.addAll(buildTitle("微兔便利店", width: 58));
-    // content.add(0x0a);
-    // content = base64.decode(
-    //     "G0UBHSEiG2EBye7b2ryqz+mx48D7teoKChtFAB0hABthAcnu29q8qs/psePA+7Xqu7bTrcTjo6zQu9C7u925y6Osu7bTrc/CtM654sHZILu2063E4woKCgobbQ==");
-    doPost(content);
+    try {
+      Page page = Page(pageWidth: PageWidth.p58);
+      page.addLines([
+        MultiText(
+          weight: 1,
+          bold: 1,
+          size: 2,
+          spans: [
+            TextSpan(text: "Wetool Bian Li Dian", align: Align.center, flex: 1),
+          ],
+        ),
+        MultiText(
+          size: 1,
+          spans: [
+            TextSpan(
+                text:
+                    "Note: Please contact the customer to handle the refund after negotiation",
+                align: Align.center,
+                flex: 1),
+          ],
+        ),
+        Divider(),
+        MultiText(
+          spans: [
+            TextSpan(text: "Phone", align: Align.left, width: 10),
+            TextSpan(text: "18588257486", align: Align.right, flex: 1),
+          ],
+        ),
+        MultiText(
+          spans: [
+            TextSpan(text: "Member No", align: Align.left, flex: 1),
+            TextSpan(text: "185882", align: Align.right, width: 10),
+          ],
+        ),
+        MultiText(
+          spans: [
+            TextSpan(text: "1234567890", align: Align.left, flex: 1),
+            TextSpan(text: "123", align: Align.center, width: 10),
+            TextSpan(text: "1234567890", align: Align.right, flex: 1),
+          ],
+        ),
+        Divider(character: "="),
+        NewLine(),
+        NewLine(),
+        Barcode(content: "1234567890", needCodeB: false),
+        NewLine(),
+        Divider(character: "*"),
+        NewLine(),
+        NewLine(),
+        NewLine(),
+        NewLine(),
+        NewLine(),
+        NewLine(),
+      ]);
+      Uint8List data = page.build();
+      doPost(data.toList());
+    } catch (e, t) {
+      EasyLoading.showError(e.toString());
+      debugPrint(t.toString());
+    }
   }
 
   @override
@@ -249,6 +288,12 @@ class _MyAppState extends State<MyApp> {
           ThemeButton(
             childBuilder: (_) => "标签打印".toText(),
             onClick: () => App.push(LabelPrintSettingsPage()),
+            width: 90,
+            backgroundColor: Colors.blue,
+          ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          ThemeButton(
+            childBuilder: (_) => "测试".toText(),
+            onClick: () => doTestBase64(),
             width: 90,
             backgroundColor: Colors.blue,
           ).toRow(mainAxisAlignment: MainAxisAlignment.center),

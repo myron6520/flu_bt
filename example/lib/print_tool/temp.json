@@ -1,0 +1,27 @@
+{
+    "pageWidth": 58,
+    "data": [
+        {
+            "type": "text",
+            "text": "JIXI Convenience Store",
+            "size": 1,
+            "bold": 1,
+            "weight": 1,
+            "align": "center"
+        },
+        {
+            "type": "divider",
+            "character": "-"
+        },
+        {
+            "type": "barcode",
+            "content": "9893893999"
+        },
+        {
+            "type": "cut"
+        },
+        {
+            "type": "cashBox"
+        }
+    ]
+}
