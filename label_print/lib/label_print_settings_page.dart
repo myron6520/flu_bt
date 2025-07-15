@@ -15,7 +15,7 @@ import 'package:qm_widget/pub/scale_util.dart';
 import 'package:qm_widget/qm_widget.dart';
 import 'package:qm_widget/style/qm_icon.dart';
 import 'package:qm_widget/wetool/wetool.dart';
-
+import 'package:common_lang/common_lang.dart';
 import 'label_print_config.dart';
 import 'offset_stepper.dart';
 
@@ -34,7 +34,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return WTScaffold(
-      title: '价签打印',
+      title: S.current.price_label_print,
       backgroundColor: QMColor.COLOR_F7F9FA,
       appBarBackgroundColor: QMColor.COLOR_F7F9FA,
       systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
@@ -43,7 +43,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
       body: [
         [
           8.s.inColumn,
-          "打印机管理"
+          S.current.printer_management
               .toText(
                 color: QMColor.COLOR_8F92A1,
                 fontSize: 14.fs,
@@ -54,7 +54,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
               ),
           [
             [
-              "连接蓝牙设备"
+              S.current.connect_bluetooth_device
                   .toText(
                     color: QMColor.COLOR_030319,
                     fontSize: 16.fs,
@@ -97,7 +97,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
             }),
             // SRStyle.COLOR_F2F2F2.toDivider(),
             [
-              "打印指令"
+              S.current.print_instruction
                   .toText(
                     color: QMColor.COLOR_030319,
                     fontSize: 16.fs,
@@ -129,7 +129,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
                     borderRadius: BorderRadius.circular(8.s),
                     color: Colors.white,
                   )),
-          "价签打印"
+          S.current.price_label_print
               .toText(
                 color: QMColor.COLOR_8F92A1,
                 fontSize: 14.fs,
@@ -140,7 +140,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
               ),
           [
             [
-              "价签样式"
+              S.current.label_style
                   .toText(
                     color: QMColor.COLOR_030319,
                     fontSize: 16.fs,
@@ -182,7 +182,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
             }),
             settings.style.reverseEnable.toWidget(
               () => [
-                "反向标签"
+                S.current.reverse_label
                     .toText(
                       color: QMColor.COLOR_030319,
                       fontSize: 16.fs,
@@ -212,7 +212,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
                     borderRadius: BorderRadius.circular(8.s),
                     color: Colors.white,
                   )),
-          "纸张设置"
+          S.current.paper_setting
               .toText(
                 color: QMColor.COLOR_8F92A1,
                 fontSize: 14.fs,
@@ -223,7 +223,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
               ),
           [
             [
-              "水平偏移"
+              S.current.horizontal_offset
                   .toText(
                     color: QMColor.COLOR_030319,
                     fontSize: 16.fs,
@@ -243,7 +243,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
                   padding: EdgeInsets.symmetric(vertical: 16.s),
                 ),
             [
-              "垂直偏移"
+              S.current.vertical_offset
                   .toText(
                     color: QMColor.COLOR_030319,
                     fontSize: 16.fs,
@@ -280,8 +280,10 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
             .expanded,
         ThemeButton(
           height: 44.s,
-          childBuilder: (_) =>
-              (widget.doNext != null ? '保存并打印' : '测试打印').toText(
+          childBuilder: (_) => (widget.doNext != null
+                  ? S.current.save_and_print
+                  : S.current.print_test)
+              .toText(
             fontSize: 16.fs,
             height: 24 / 16,
             color: Colors.white,
@@ -313,10 +315,10 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
       showDialog(
           context: context,
           builder: (_) => QMAlertWidget(
-                title: "提示",
-                message: "蓝牙未开启，请开启蓝牙",
+                title: S.current.tips,
+                message: S.current.bluetooth_not_enabled,
                 handles: [
-                  QMHandleStyle.primary(title: "去设置"),
+                  QMHandleStyle.primary(title: S.current.go_to_settings),
                 ],
                 onHandleItemClick: (idx, _) {
                   LabelPrintConfig.instance.fluBt.gotoSettings();
@@ -333,11 +335,11 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
       builder: (_) => Material(
           color: Colors.transparent,
           child: QMAlertWidget(
-            title: "提示",
-            message: "需要您的授权才能进行下一步操作",
+            title: S.current.tips,
+            message: S.current.need_authorization,
             handles: [
               QMHandleStyle.gray(),
-              QMHandleStyle.primary(title: "去授权"),
+              QMHandleStyle.primary(title: S.current.go_to_authorization),
             ],
             onHandleItemClick: (idx, _) {
               if (idx == 1) {
@@ -367,7 +369,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
   void showCmdTypeSelector() {
     final list = [PrintProtocol.TSPL, PrintProtocol.CPCL];
     WTBottomSheetContailer(
-        title: "选择打印指令",
+        title: S.current.select_print_command,
         child: WTSelectorWidget(
           length: 2,
           getTitleFunc: (idx) => list[idx].strVal,
@@ -455,7 +457,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
 
   void doTest() async {
     if (LabelPrintConfig.instance.fluBt.connectedPeripheral.isEmpty) {
-      EasyLoading.showError('请连接打印机');
+      EasyLoading.showError(S.current.connect_printer);
       return;
     }
 

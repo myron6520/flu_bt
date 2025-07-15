@@ -4,39 +4,40 @@ import 'package:label_print/label_print.dart';
 import 'package:print_cmd/tsc/label_command.dart';
 import 'package:print_cmd/tsc/label_helper.dart';
 import 'package:qm_dart_ex/qm_dart_ex.dart';
+import 'package:common_lang/common_lang.dart';
 
 class LabelStyle {
-  static const LabelStyle style1 = LabelStyle(
+  static LabelStyle style1 = LabelStyle(
     uuid: "_style1",
-    name: "商超模版A",
+    name: S.current.super_market_template_a,
     iconAsset: "assets/style1.svg",
     size: Size(70, 38),
     reverseEnable: true,
   );
-  static const LabelStyle style2 = LabelStyle(
+  static LabelStyle style2 = LabelStyle(
     uuid: "_style2",
-    name: "商超模版B",
+    name: S.current.super_market_template_b,
     iconAsset: "assets/style2.svg",
     size: Size(70, 38),
     reverseEnable: true,
   );
-  static const LabelStyle style3 = LabelStyle(
+  static LabelStyle style3 = LabelStyle(
     uuid: "_style3",
-    name: "白色标签",
+    name: S.current.white_label,
     iconAsset: "assets/style3.svg",
     size: Size(70, 38),
     reverseEnable: true,
   );
-  static const LabelStyle style4 = LabelStyle(
+  static LabelStyle style4 = LabelStyle(
     uuid: "_style4",
-    name: "白色标签",
+    name: S.current.white_label,
     iconAsset: "assets/style4.svg",
     size: Size(70, 38),
     reverseEnable: true,
   );
-  static const LabelStyle style5 = LabelStyle(
+  static LabelStyle style5 = LabelStyle(
     uuid: "_style5",
-    name: "白色标签",
+    name: S.current.white_label,
     iconAsset: "assets/style5.svg",
     size: Size(40, 30),
     reverseEnable: true,

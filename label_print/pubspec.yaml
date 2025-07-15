@@ -19,6 +19,8 @@ dependencies:
     path: ../../flu_bt
   print_cmd:
     path: ../../print_cmd
+  common_lang:
+    path: ../../common_lang
   flutter_svg: ^2.0.6
   permission_handler: ^12.0.0
   flutter_easyloading: ^3.0.3

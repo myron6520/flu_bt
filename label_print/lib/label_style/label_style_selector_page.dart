@@ -5,7 +5,7 @@ import 'package:qm_widget/pub/scale_util.dart';
 import 'package:qm_widget/qm_widget.dart';
 import 'package:qm_widget/style/qm_icon.dart';
 import 'package:qm_widget/wetool/wetool.dart';
-
+import 'package:common_lang/common_lang.dart';
 import 'label_style.dart';
 
 class LabelStyleSelectorPage extends StatefulWidget {
@@ -74,7 +74,7 @@ class _LabelStyleSelectorPageState extends State<LabelStyleSelectorPage> {
   @override
   Widget build(BuildContext context) {
     return WTScaffold(
-      title: "标签样式",
+      title: S.current.label_style,
       appBarBackgroundColor: Colors.white,
       backgroundColor: QMColor.COLOR_F7F9FA,
       body: [
