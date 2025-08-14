@@ -12,9 +12,9 @@ dependencies:
   flutter:
     sdk: flutter
   qm_widget:
-    git: https://github.com/myron6520/qm_widget.git
+    path: ../../qm_widget
   qm_dart_ex:
-    git: https://github.com/myron6520/qm_dart_ex.git
+    path: ../../qm_dart_ex
   flu_bt:
     path: ../../flu_bt
   print_cmd:
