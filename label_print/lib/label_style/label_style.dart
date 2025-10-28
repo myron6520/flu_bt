@@ -5,6 +5,7 @@ import 'package:print_cmd/tsc/label_command.dart';
 import 'package:print_cmd/tsc/label_helper.dart';
 import 'package:qm_dart_ex/qm_dart_ex.dart';
 import 'package:common_lang/common_lang.dart';
+import 'dart:convert';
 
 class LabelStyle {
   static LabelStyle style1 = LabelStyle(
@@ -70,8 +71,8 @@ class LabelStyle {
       : uuid = '${map["uuid"] ?? ''}',
         name = '${map["name"] ?? ''}',
         iconAsset = '${map["iconAsset"] ?? ''}',
-        size = Size(double.tryParse('${map["size"]?["width"]}') ?? 0,
-            double.tryParse('${map["size"]?["height"]}') ?? 0),
+        size = Size(DoubleUtils.tryParseEx('${map["size"]?["width"]}') ?? 0,
+            DoubleUtils.tryParseEx('${map["size"]?["height"]}') ?? 0),
         reverseEnable = bool.tryParse('${map["iconAsset"] ?? ''}') ?? false;
   @override
   operator ==(Object other) =>
@@ -83,11 +84,13 @@ class LabelStyle {
     required String spec,
     required double sellPrice,
     required PrintSettings settings,
+    bool useUtf8 = false,
   }) async {
     int offsetX = settings.offset.dx.toInt();
     int offsetY = settings.offset.dy.toInt();
     if (uuid == "_style1") {
-      LabelCommand cmd = LabelCommand();
+      LabelCommand cmd =
+          LabelCommand(encodeFunc: useUtf8 ? (p) => utf8.encode(p) : null);
       if (settings.protocol == PrintProtocol.CPCL) {
         cmd.addStr("! 0 200 200 300 1\r\n");
         cmd.addStr("PW 560\r\n");
@@ -151,6 +154,7 @@ class LabelStyle {
           sellPrice: sellPrice.awesome(),
           offsetX: settings.offset.dx.toInt(),
           offsetY: settings.offset.dy.toInt(),
+          useUtf8: useUtf8,
         );
       }
       if (settings.protocol == PrintProtocol.CPCL) {
@@ -162,6 +166,7 @@ class LabelStyle {
           sellPrice: sellPrice.awesome(),
           offsetX: settings.offset.dx.toInt(),
           offsetY: settings.offset.dy.toInt(),
+          useUtf8: useUtf8,
         );
       }
     }
