@@ -288,7 +288,7 @@ class _LabelPrintSettingsPageState extends State<LabelPrintSettingsPage> {
             height: 24 / 16,
             color: Colors.white,
           ),
-          borderRadius: 8.s,
+          borderRadius: 100.s,
           backgroundColor: QMColor.COLOR_00B276,
           highlightColor: QMColor.COLOR_00B276.applyOpacity(0.4),
           onClick: () {
