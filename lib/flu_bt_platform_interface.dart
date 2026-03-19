@@ -78,4 +78,7 @@ abstract class FluBtPlatform extends PlatformInterface {
 
   Future<void> gotoSettings() async =>
       throw UnimplementedError('platformVersion() has not been implemented.');
+  Future<void> loadBondedDevices() async {
+    throw UnimplementedError('platformVersion() has not been implemented.');
+  }
 }

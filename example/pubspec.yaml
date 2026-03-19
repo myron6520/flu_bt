@@ -25,9 +25,9 @@ dependencies:
     # the parent directory to use the current plugin's version.
     path: ../
   qm_widget:
-    git: https://github.com/myron6520/qm_widget.git
+    path: ../../qm_widget
   qm_dart_ex:
-     git: https://github.com/myron6520/qm_dart_ex.git
+    path: ../../qm_dart_ex
   label_print:
      path: ../label_print
   permission_handler: ^12.0.0

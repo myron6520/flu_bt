@@ -152,4 +152,8 @@ class MethodChannelFluBt extends FluBtPlatform {
   @override
   Future<void> gotoSettings() async =>
       await methodChannel.invokeMethod("gotoSettings");
+
+  @override
+  Future<void> loadBondedDevices() async =>
+      await methodChannel.invokeMethod("loadBondedDevices");
 }

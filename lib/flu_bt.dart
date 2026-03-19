@@ -9,12 +9,11 @@ import 'package:flu_bt/result.dart';
 import 'package:flutter/services.dart';
 
 import 'define.dart';
-import 'event_mixin.dart';
-import 'flu_bt_platform_interface.dart';
 
 class FluBt {
   late MethodChannel methodChannel = const MethodChannel('flu_bt')
     ..setMethodCallHandler((call) async {
+      print("android call:${call.method} arguments:${call.arguments}");
       switch (call.method) {
         case "didDiscoverPeripheral":
           List arguments = call.arguments;
@@ -146,4 +145,7 @@ class FluBt {
     bool enable = await methodChannel.invokeMethod<bool>("makeEnable") ?? false;
     return enable;
   }
+
+  Future<void> loadBondedDevices() async =>
+      await methodChannel.invokeMethod("loadBondedDevices");
 }

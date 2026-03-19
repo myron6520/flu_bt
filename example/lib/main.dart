@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flu_bt/define.dart';
+import 'package:flu_bt/peripheral.dart';
 import 'package:flu_bt_example/app_plugin.dart';
 import 'package:flu_bt_example/ble_list_page.dart';
 import 'package:flu_bt_example/print_tool/line.dart';
@@ -74,6 +75,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late StreamSubscription<MethodCall> methodSubscription;
+  late StreamSubscription<List<Peripheral>> subscription;
   @override
   void initState() {
     super.initState();
@@ -86,6 +88,15 @@ class _MyAppState extends State<MyApp> {
         builder: (context) => BLEListPage(),
       ));
     };
+    subscription = AppPlugin.fluBt.scanStream.listen((event) {
+      for (var peripheral in event) {
+        print("peripheral:${peripheral.name}");
+        print("peripheral:${peripheral.uuid}");
+        print("peripheral:${peripheral.rssi}");
+        print("peripheral:${peripheral.state}");
+        print("peripheral:${peripheral.deviceType}");
+      }
+    });
   }
 
   void onMethodCall(MethodCall call) {
@@ -107,6 +118,7 @@ class _MyAppState extends State<MyApp> {
       List<int> data = dataToWrite.sublist(0, endIdx);
       dataToWrite.removeRange(0, endIdx);
       for (var peripheral in AppPlugin.fluBt.connectedPeripheral) {
+        print("peripheral:${peripheral.uuid}");
         AppPlugin.fluBt.write(peripheral.uuid, "", Uint8List.fromList(data));
       }
     }
@@ -239,6 +251,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     methodSubscription.cancel();
+    subscription.cancel();
     super.dispose();
   }
 
@@ -270,31 +283,36 @@ class _MyAppState extends State<MyApp> {
           ThemeButton(
             childBuilder: (_) => "startAdvertising".toText(),
             onClick: () => AppPlugin.fluBt.startAdvertising(),
-            width: 90,
             backgroundColor: Colors.blue,
           ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          16.inColumn,
           ThemeButton(
             childBuilder: (_) => "stopAdvertising".toText(),
             onClick: () => AppPlugin.fluBt.stopAdvertising(),
-            width: 90,
             backgroundColor: Colors.blue,
           ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          16.inColumn,
+          ThemeButton(
+            childBuilder: (_) => "loadBondedDevices".toText(),
+            onClick: () => AppPlugin.fluBt.loadBondedDevices(),
+            backgroundColor: Colors.blue,
+          ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          16.inColumn,
           ThemeButton(
             childBuilder: (_) => "测试".toText(),
             onClick: () => doTest(),
-            width: 90,
             backgroundColor: Colors.blue,
           ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          16.inColumn,
           ThemeButton(
             childBuilder: (_) => "标签打印".toText(),
             onClick: () => App.push(LabelPrintSettingsPage()),
-            width: 90,
             backgroundColor: Colors.blue,
           ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          16.inColumn,
           ThemeButton(
             childBuilder: (_) => "测试".toText(),
             onClick: () => doTestBase64(),
-            width: 90,
             backgroundColor: Colors.blue,
           ).toRow(mainAxisAlignment: MainAxisAlignment.center),
         ].toColumn(mainAxisAlignment: MainAxisAlignment.center),

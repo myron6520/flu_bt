@@ -5,6 +5,7 @@ import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothAdapter.EXTRA_CONNECTION_STATE
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothDevice.DEVICE_TYPE_CLASSIC
 import android.bluetooth.BluetoothDevice.DEVICE_TYPE_DUAL
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
@@ -12,6 +13,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothSocket
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
@@ -33,6 +35,8 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import java.io.IOException
+import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.UUID
@@ -43,6 +47,8 @@ import java.util.UUID
 class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallback(){
   companion object{
     const val TAG = "FluBtPlugin"
+//    val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
+    val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
   }
   /// The MethodChannel that will the communication between Flutter and native Android
   ///
@@ -128,6 +134,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
 
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+    Log.e(TAG, "onMethodCall:${call.method} arguments:${call.arguments}", )
     when(call.method){
       "getPlatformVersion"->result.success("Android ${android.os.Build.VERSION.RELEASE}")
       "getCentralState"->result.success(if(bluetoothAdapter.isEnabled) Define.CENTRAL_STATE_POWER_ON else Define.CENTRAL_STATE_POWER_OFF)
@@ -154,35 +161,58 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       }
       "connect"->{
         val arguments = call.arguments as Map<*, *>
-        val uuid = arguments["uuid"] ?: ""
-        val device = peripherals[uuid]
+        val uuid = arguments["uuid"] as? String ?: ""
+        val device = peripherals[uuid] ?: try {
+          bluetoothAdapter.getRemoteDevice(uuid)
+        } catch (e: IllegalArgumentException) {
+          null
+        }
         if(device == null){
           result.success(mapOf("status" to false,"code" to 1,"msg" to "找不到外设"))
           return
         }
-        if( false&&device.type == DEVICE_TYPE_DUAL&&device.bondState == BluetoothDevice.BOND_NONE){
-          device.createBond()
-        }else{
-          connectDevice(device.address)
-//          device.connectGatt(appContext,true,gattCallback, BluetoothDevice.TRANSPORT_LE)
+        peripherals[uuid] = device
+        if (isClassicDevice(device)) {
+          val connectResult = connectClassicInternal(device)
+          result.success(connectResult)
+        } else {
+          if( false&&device.type == DEVICE_TYPE_DUAL&&device.bondState == BluetoothDevice.BOND_NONE){
+            device.createBond()
+          }else{
+            connectDevice(device.address)
+          }
+          result.success(mapOf("status" to true,"code" to 0,"msg" to "开始BLE连接"))
         }
       }
       "disconnect"->{
         val arguments = call.arguments as Map<*, *>
-        val uuid = arguments["uuid"] ?: ""
+        val uuid = arguments["uuid"] as? String ?: ""
+        val device = peripherals[uuid]
+        if (device != null && isClassicDevice(device)) {
+          disconnectClassicInternal(uuid)
+          invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_DISCONNECTED))
+          result.success(mapOf("status" to true, "code" to 0, "msg" to "SPP断开成功"))
+          return
+        }
         val gatt = bluetoothGatts[uuid]
         if(gatt == null){
           result.success(mapOf("status" to false,"code" to 1,"msg" to "找不到外设"))
           return
         }
         gatt.disconnect()
+        result.success(mapOf("status" to true, "code" to 0, "msg" to "BLE断开成功"))
       }
       "write"->{
         Log.e(TAG, "onMethodCall: 写入数据", )
         val arguments = call.arguments as Map<*, *>
-        val uuid = arguments["uuid"] ?: ""
+        val uuid = arguments["uuid"] as? String ?: ""
         val data = arguments["data"] as ByteArray
         val characteristicUUID:String = (arguments["characteristicUUID"] ?: "") as String
+        val device = peripherals[uuid]
+        if (device != null && isClassicDevice(device)) {
+          result.success(writeClassicInternal(uuid, data))
+          return
+        }
         val gatt = bluetoothGatts[uuid]
         if(gatt == null){
           result.success(mapOf("status" to false,"code" to 1,"msg" to "找不到外设"))
@@ -206,6 +236,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         }
         characteristic.value = data
         gatt.writeCharacteristic(characteristic)
+        result.success(mapOf("status" to true, "code" to 0, "msg" to "BLE写入已提交"))
       }
       "getMtu" -> {
         val arguments = call.arguments as Map<*, *>
@@ -241,6 +272,24 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         val gatt = bluetoothGatts[uuid]
         gatt?.requestMtu(mtu)
       }
+      "loadBondedDevices"->{
+        val pairedDevices = bluetoothAdapter.bondedDevices
+        if(!pairedDevices.isNullOrEmpty()){
+          val res = mutableListOf<Map<*,*>>()
+          pairedDevices.forEach {
+            Log.e(TAG, "pairedDevice:${it.name} ${it.address}" )
+            res.add(mapOf(
+              "name" to (it.name ?: ""),
+              "uuid" to it.address,
+              "deviceType" to  (it.type),
+              "state" to 2,
+            ))
+            peripherals[it.address] = it
+          }
+
+          invokeMethod("didDiscoverPeripheral", res)
+        }
+      }
       else->result.notImplemented()
     }
   }
@@ -268,12 +317,97 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
   private var isScanning = false
   private val peripherals = mutableMapOf<String,BluetoothDevice>()
   private val bluetoothGatts = mutableMapOf<String,BluetoothGatt>()
+  private val classicSockets = mutableMapOf<String, BluetoothSocket>()
+  private val classicReadThreads = mutableMapOf<String, Thread>()
+
+  private fun isClassicDevice(device: BluetoothDevice): Boolean {
+    return device.type == DEVICE_TYPE_CLASSIC || device.type == DEVICE_TYPE_DUAL
+  }
+
+  private fun connectClassicInternal(device: BluetoothDevice): Map<String, Any> {
+    val uuid = device.address
+    if(device.bondState != BluetoothDevice.BOND_BONDED){
+      return mapOf("status" to false, "code" to 2, "msg" to "设备未配对")
+    }
+    disconnectClassicInternal(uuid)
+    return try {
+      bluetoothAdapter.cancelDiscovery()
+      val socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+      socket.connect()
+      classicSockets[uuid] = socket
+      startClassicReadLoop(uuid, socket)
+      invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_CONNECTED))
+      mapOf("status" to true, "code" to 0, "msg" to "SPP连接成功")
+    } catch (e: IOException){
+      Log.e(TAG, "connectClassic error", e)
+      disconnectClassicInternal(uuid)
+      mapOf("status" to false, "code" to 3, "msg" to "SPP连接失败:${e.message}")
+    }
+  }
+
+  private fun writeClassicInternal(uuid: String, data: ByteArray): Map<String, Any> {
+    val socket = classicSockets[uuid]
+    if(socket == null || !socket.isConnected){
+      return mapOf("status" to false, "code" to 2, "msg" to "SPP未连接")
+    }
+    return try {
+      socket.outputStream.write(data)
+      socket.outputStream.flush()
+      mapOf("status" to true, "code" to 0, "msg" to "SPP发送成功")
+    } catch (e: IOException){
+      Log.e(TAG, "writeClassic error", e)
+      disconnectClassicInternal(uuid)
+      mapOf("status" to false, "code" to 3, "msg" to "SPP发送失败:${e.message}")
+    }
+  }
+
+  private fun disconnectClassicInternal(uuid: String){
+    classicReadThreads.remove(uuid)?.interrupt()
+    try {
+      classicSockets.remove(uuid)?.close()
+    } catch (e: IOException){
+      Log.e(TAG, "disconnectClassicInternal close error", e)
+    }
+  }
+
+  private fun startClassicReadLoop(uuid: String, socket: BluetoothSocket){
+    val oldThread = classicReadThreads.remove(uuid)
+    oldThread?.interrupt()
+    val readThread = Thread {
+      val buffer = ByteArray(1024)
+      var inputStream: InputStream? = null
+      try {
+        inputStream = socket.inputStream
+        while (!Thread.currentThread().isInterrupted && socket.isConnected){
+          val len = inputStream.read(buffer)
+          if(len <= 0){
+            continue
+          }
+          val data = buffer.copyOfRange(0, len)
+          invokeMethod("didReceiveData", mapOf(
+            "uuid" to uuid,
+            "characteristicUUID" to "spp",
+            "data" to data
+          ))
+        }
+      } catch (e: IOException){
+        Log.e(TAG, "startClassicReadLoop exit: ${e.message}")
+      } finally {
+        disconnectClassicInternal(uuid)
+        invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_DISCONNECTED))
+      }
+    }
+    readThread.name = "flu_bt_spp_read_$uuid"
+    readThread.start()
+    classicReadThreads[uuid] = readThread
+  }
   override fun onScanResult(callbackType: Int, result: ScanResult?) {
     if(result != null){
       val res = mapOf(
         "name" to (result.device?.name ?: ""),
         "rssi" to (result.rssi),
-        "uuid" to result.device.address
+        "uuid" to result.device.address,
+        "deviceType" to  (result.device.type),
       )
       peripherals[result.device.address] = result.device
       invokeMethod("didDiscoverPeripheral", listOf(res))
@@ -287,7 +421,8 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         res.add(mapOf(
           "name" to (it.device?.name ?: ""),
           "rssi" to (it.rssi),
-          "uuid" to it.device.address
+          "uuid" to it.device.address,
+          "deviceType" to  (it.device.type),
         ))
         peripherals[it.device.address] = it.device
       }
