@@ -154,6 +154,13 @@ class MethodChannelFluBt extends FluBtPlatform {
       await methodChannel.invokeMethod("gotoSettings");
 
   @override
-  Future<void> loadBondedDevices() async =>
-      await methodChannel.invokeMethod("loadBondedDevices");
+  Future<List<Peripheral>> loadBondedDevices() async {
+    List<Map<String, dynamic>> result =
+        await methodChannel.invokeMethod("loadBondedDevices");
+    List<Peripheral> peripherals = [];
+    for (var e in result) {
+      peripherals.add(Peripheral.fromMap(e));
+    }
+    return peripherals;
+  }
 }

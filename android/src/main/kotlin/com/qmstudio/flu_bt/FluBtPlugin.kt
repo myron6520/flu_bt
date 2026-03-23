@@ -134,7 +134,6 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
 
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-    Log.e(TAG, "onMethodCall:${call.method} arguments:${call.arguments}", )
     when(call.method){
       "getPlatformVersion"->result.success("Android ${android.os.Build.VERSION.RELEASE}")
       "getCentralState"->result.success(if(bluetoothAdapter.isEnabled) Define.CENTRAL_STATE_POWER_ON else Define.CENTRAL_STATE_POWER_OFF)
@@ -274,8 +273,8 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       }
       "loadBondedDevices"->{
         val pairedDevices = bluetoothAdapter.bondedDevices
+        val res = mutableListOf<Map<*,*>>()
         if(!pairedDevices.isNullOrEmpty()){
-          val res = mutableListOf<Map<*,*>>()
           pairedDevices.forEach {
             Log.e(TAG, "pairedDevice:${it.name} ${it.address}" )
             res.add(mapOf(
@@ -289,22 +288,27 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
 
           invokeMethod("didDiscoverPeripheral", res)
         }
+        result.success(res)
       }
       else->result.notImplemented()
     }
   }
   fun connectDevice(uuid:String){
-    val device = peripherals[uuid]
+    try{
+      val device = peripherals[uuid]
 
 
-    val gattServer = device?.connectGatt(appContext,false,gattCallback, BluetoothDevice.TRANSPORT_LE)
-    gattServer?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      gattServer?.setPreferredPhy(
-        BluetoothDevice.PHY_LE_2M,
-        BluetoothDevice.PHY_LE_2M,
-        BluetoothDevice.PHY_OPTION_NO_PREFERRED
-      )
+      val gattServer = device?.connectGatt(appContext,false,gattCallback, BluetoothDevice.TRANSPORT_LE)
+      gattServer?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        gattServer?.setPreferredPhy(
+          BluetoothDevice.PHY_LE_2M,
+          BluetoothDevice.PHY_LE_2M,
+          BluetoothDevice.PHY_OPTION_NO_PREFERRED
+        )
+      }
+    } catch (e:Exception){
+      invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_DISCONNECTED))
     }
   }
 
@@ -353,10 +357,12 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
     return try {
       socket.outputStream.write(data)
       socket.outputStream.flush()
+      invokeMethod("onClassicWrite",mapOf("uuid" to uuid, "status" to true))
       mapOf("status" to true, "code" to 0, "msg" to "SPP发送成功")
     } catch (e: IOException){
       Log.e(TAG, "writeClassic error", e)
       disconnectClassicInternal(uuid)
+      invokeMethod("onClassicWrite",mapOf("uuid" to uuid, "status" to false))
       mapOf("status" to false, "code" to 3, "msg" to "SPP发送失败:${e.message}")
     }
   }

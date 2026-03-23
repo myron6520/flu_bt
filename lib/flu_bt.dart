@@ -13,7 +13,6 @@ import 'define.dart';
 class FluBt {
   late MethodChannel methodChannel = const MethodChannel('flu_bt')
     ..setMethodCallHandler((call) async {
-      print("android call:${call.method} arguments:${call.arguments}");
       switch (call.method) {
         case "didDiscoverPeripheral":
           List arguments = call.arguments;
@@ -146,6 +145,12 @@ class FluBt {
     return enable;
   }
 
-  Future<void> loadBondedDevices() async =>
-      await methodChannel.invokeMethod("loadBondedDevices");
+  Future<List<Peripheral>> loadBondedDevices() async {
+    List result = await methodChannel.invokeMethod("loadBondedDevices");
+    List<Peripheral> peripherals = [];
+    for (var e in result) {
+      peripherals.add(Peripheral.fromMap(e));
+    }
+    return peripherals;
+  }
 }
