@@ -325,7 +325,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
   private val classicReadThreads = mutableMapOf<String, Thread>()
 
   private fun isClassicDevice(device: BluetoothDevice): Boolean {
-    return device.type == DEVICE_TYPE_CLASSIC || device.type == DEVICE_TYPE_DUAL
+    return device.type == DEVICE_TYPE_CLASSIC
   }
 
   private fun connectClassicInternal(device: BluetoothDevice): Map<String, Any> {
