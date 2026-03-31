@@ -6,6 +6,7 @@ import 'dart:math';
 
 import 'package:flu_bt/define.dart';
 import 'package:flu_bt/peripheral.dart';
+import 'package:flu_bt/print_builder/printer_builder.dart';
 import 'package:flu_bt_example/app_plugin.dart';
 import 'package:flu_bt_example/ble_list_page.dart';
 import 'package:flu_bt_example/print_tool/line.dart';
@@ -89,13 +90,13 @@ class _MyAppState extends State<MyApp> {
       ));
     };
     subscription = AppPlugin.fluBt.scanStream.listen((event) {
-      for (var peripheral in event) {
-        print("peripheral:${peripheral.name}");
-        print("peripheral:${peripheral.uuid}");
-        print("peripheral:${peripheral.rssi}");
-        print("peripheral:${peripheral.state}");
-        print("peripheral:${peripheral.deviceType}");
-      }
+      // for (var peripheral in event) {
+      //   print("peripheral:${peripheral.name}");
+      //   print("peripheral:${peripheral.uuid}");
+      //   print("peripheral:${peripheral.rssi}");
+      //   print("peripheral:${peripheral.state}");
+      //   print("peripheral:${peripheral.deviceType}");
+      // }
     });
   }
 
@@ -315,11 +316,72 @@ class _MyAppState extends State<MyApp> {
             onClick: () => doTestBase64(),
             backgroundColor: Colors.blue,
           ).toRow(mainAxisAlignment: MainAxisAlignment.center),
+          16.inColumn,
+          ThemeButton(
+            childBuilder: (_) => "FFI测试".toText(),
+            onClick: () {
+              printBuilder ??= PrintBuilder();
+              final res = printBuilder?.buildFromPage({
+                "PageWidth": 80,
+                "Cmd": 0,
+                "Lines": [
+                  {"Type": 1}, // NewLine
+                  {
+                    "Type": 3,
+                    "BarCode": {
+                      "Content": "123456123456123456",
+                      "ShowText": true,
+                      "LineWidth": 2,
+                      "Height": 72,
+                      "align": 1
+                    }
+                  },
+                  {
+                    "Type": 0,
+                    "Size": 2,
+                    "Weight": 2,
+                    "Bold": true,
+                    "TextList": [
+                      {"Content": "吉祥观点", "align": 1},
+                    ]
+                  },
+                  {
+                    "Type": 0,
+                    "Size": 0,
+                    "Weight": 0,
+                    "TextList": [
+                      {"Content": "订单号", "Width": 6, "align": 0},
+                      {"Content": "1232323242222", "Flex": 1, "align": 2},
+                    ]
+                  },
+                  {
+                    "Type": 4,
+                    "QrCode": {
+                      "Content": "123456",
+                      "Size": 12,
+                      "align": 1,
+                      "ErrorCorrectionLevel": 1
+                    }
+                  },
+                  {"Type": 1},
+                  {"Type": 1},
+                  {"Type": 1},
+                  {"Type": 1},
+                  {"Type": 6}, // Cut
+                ]
+              });
+              print("object:${res}");
+              doPost((res ?? []).toList());
+            },
+            backgroundColor: Colors.blue,
+          ).toRow(mainAxisAlignment: MainAxisAlignment.center),
         ].toColumn(mainAxisAlignment: MainAxisAlignment.center),
       ),
       builder: EasyLoading.init(),
     );
   }
+
+  PrintBuilder? printBuilder;
 
   void readPeer() async {
     if (await checkCentralState()) {
