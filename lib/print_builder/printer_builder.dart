@@ -14,12 +14,22 @@ final class ByteBuffer extends ffi.Struct {
 typedef _BuildNative = ByteBuffer Function(ffi.Pointer<ffi.Char>);
 typedef _BuildDart = ByteBuffer Function(ffi.Pointer<ffi.Char>);
 
+typedef _BuildTextLinePlainNative = ByteBuffer Function(
+  ffi.Pointer<ffi.Char>,
+  ffi.Int32,
+);
+typedef _BuildTextLinePlainDart = ByteBuffer Function(
+  ffi.Pointer<ffi.Char>,
+  int,
+);
+
 typedef _FreeNative = ffi.Void Function(ffi.Pointer<ffi.Uint8>);
 typedef _FreeDart = void Function(ffi.Pointer<ffi.Uint8>);
 
 class PrintBuilder {
   late final ffi.DynamicLibrary _lib;
   late final _BuildDart _build;
+  late final _BuildTextLinePlainDart _buildTextLinePlain;
   late final _FreeDart _free;
 
   PrintBuilder() {
@@ -29,6 +39,10 @@ class PrintBuilder {
     _lib = ffi.DynamicLibrary.open('libprint.so');
     _build =
         _lib.lookupFunction<_BuildNative, _BuildDart>('BuildFromPageJSONRaw');
+    _buildTextLinePlain =
+        _lib.lookupFunction<_BuildTextLinePlainNative, _BuildTextLinePlainDart>(
+      'BuildTextLinePlain',
+    );
     _free = _lib.lookupFunction<_FreeNative, _FreeDart>('FreeBuffer');
   }
 
@@ -49,5 +63,32 @@ class PrintBuilder {
 
   List<int> buildFromPageModel(Page page) {
     return buildFromPage(page.toJson());
+  }
+
+  String buildTextLinePlain(
+    Map<String, dynamic> line, {
+    PageWidth pageWidth = PageWidth.width58,
+  }) {
+    final jsonStr = jsonEncode(line);
+    final cJson = jsonStr.toNativeUtf8().cast<ffi.Char>();
+    try {
+      final out = _buildTextLinePlain(cJson, pageWidth.value);
+      if (out.ptr.address == 0 || out.len <= 0) return '';
+      try {
+        final bytes = out.ptr.asTypedList(out.len);
+        return utf8.decode(bytes);
+      } finally {
+        _free(out.ptr);
+      }
+    } finally {
+      malloc.free(cJson);
+    }
+  }
+
+  String buildTextLinePlainFromModel(
+    Line line, {
+    PageWidth pageWidth = PageWidth.width58,
+  }) {
+    return buildTextLinePlain(line.toJson(), pageWidth: pageWidth);
   }
 }

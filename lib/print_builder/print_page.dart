@@ -83,15 +83,44 @@ enum ErrorCorrectionLevel {
   }
 }
 
+class LineGroup {
+  final List<Line> lines;
+  final String key;
+
+  const LineGroup({
+    required this.lines,
+    required this.key,
+  });
+
+  factory LineGroup.fromJson(Map<String, dynamic> json) {
+    return LineGroup(
+      lines: ((json['lines'] ?? json['Lines']) as List<dynamic>? ?? const [])
+          .map((e) => Line.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      key: (json['key'] ?? json['Key'] ?? '') as String,
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'lines': lines.map((e) => e.toJson()).toList(),
+      'key': key,
+    };
+  }
+
+  bool get isDividerOnly => lines.every((e) => e.type == LineType.divider);
+}
+
 class Page {
   final PageWidth pageWidth;
-  final List<Line> lines;
+  final List<LineGroup> lineGroups;
   final Cmd cmd;
+  final String key;
 
   const Page({
     required this.pageWidth,
-    required this.lines,
+    required this.lineGroups,
     this.cmd = Cmd.esc,
+    this.key = '',
   });
 
   factory Page.fromJson(Map<String, dynamic> json) {
@@ -99,32 +128,38 @@ class Page {
       pageWidth: PageWidth.fromValue(
         (json['pageWidth'] ?? json['PageWidth'] ?? 58) as int,
       ),
-      lines: ((json['lines'] ?? json['Lines']) as List<dynamic>? ?? const [])
-          .map((e) => Line.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      lineGroups:
+          ((json['lineGroups'] ?? json['LineGroups']) as List<dynamic>? ??
+                  const [])
+              .map((e) => LineGroup.fromJson(e as Map<String, dynamic>))
+              .toList(),
       cmd: Cmd.fromValue((json['cmd'] ?? json['Cmd'] ?? 0) as int),
+      key: (json['key'] ?? json['Key'] ?? '') as String,
     );
   }
-
+  List<Line> get lines => lineGroups.expand((e) => e.lines).toList();
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'pageWidth': pageWidth.value,
       'lines': lines.map((e) => e.toJson()).toList(),
+      'lineGroups': lineGroups.map((e) => e.toJson()).toList(),
       'cmd': cmd.value,
+      'key': key,
     };
   }
 }
 
 class Line {
-  final int size;
-  final int weight;
+  late int size;
+  late int weight;
   final bool bold;
   final LineType type;
   final List<Text> textList;
   final QrCode? qrCode;
   final BarCode? barCode;
+  final String key;
 
-  const Line({
+  Line({
     this.size = 0,
     this.weight = 0,
     this.bold = false,
@@ -132,6 +167,7 @@ class Line {
     this.textList = const [],
     this.qrCode,
     this.barCode,
+    this.key = '',
   });
 
   factory Line.fromJson(Map<String, dynamic> json) {
@@ -153,6 +189,7 @@ class Line {
           : BarCode.fromJson(
               (json['barCode'] ?? json['BarCode']) as Map<String, dynamic>,
             ),
+      key: (json['key'] ?? json['Key'] ?? '') as String,
     );
   }
 
@@ -165,6 +202,7 @@ class Line {
       'textList': textList.map((e) => e.toJson()).toList(),
       if (qrCode != null) 'qrCode': qrCode!.toJson(),
       if (barCode != null) 'barCode': barCode!.toJson(),
+      'key': key,
     };
   }
 }
