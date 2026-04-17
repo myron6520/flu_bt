@@ -33,10 +33,7 @@ class PrintBuilder {
   late final _FreeDart _free;
 
   PrintBuilder() {
-    if (!Platform.isAndroid) {
-      throw UnsupportedError('Only Android supported');
-    }
-    _lib = ffi.DynamicLibrary.open('libprint.so');
+    _lib = _openLibrary();
     _build =
         _lib.lookupFunction<_BuildNative, _BuildDart>('BuildFromPageJSONRaw');
     _buildTextLinePlain =
@@ -44,6 +41,39 @@ class PrintBuilder {
       'BuildTextLinePlain',
     );
     _free = _lib.lookupFunction<_FreeNative, _FreeDart>('FreeBuffer');
+  }
+
+  ffi.DynamicLibrary _openLibrary() {
+    if (Platform.isAndroid) {
+      return ffi.DynamicLibrary.open('libprint.so');
+    }
+    if (Platform.isMacOS) {
+      final executableDir = File(Platform.resolvedExecutable).parent.path;
+      final candidatePaths = <String>[
+        // App bundle common locations.
+        '$executableDir/../Frameworks/libprint.dylib',
+        '$executableDir/../Resources/libprint.dylib',
+        // Plugin framework resource locations.
+        '$executableDir/../Frameworks/flu_bt.framework/Resources/libprint.dylib',
+        '$executableDir/../Frameworks/flu_bt.framework/Versions/A/Resources/libprint.dylib',
+        'libprint.dylib',
+      ];
+
+      Object? lastError;
+      for (final path in candidatePaths) {
+        try {
+          return ffi.DynamicLibrary.open(path);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw ArgumentError(
+        'Failed to load libprint.dylib from ${candidatePaths.join(', ')}. '
+        'Last error: $lastError',
+      );
+    }
+    throw UnsupportedError('Unsupported platform: ${Platform.operatingSystem}');
   }
 
   List<int> buildFromPage(Map<String, dynamic> page) {

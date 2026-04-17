@@ -108,6 +108,7 @@ class LineGroup {
   }
 
   bool get isDividerOnly => lines.every((e) => e.type == LineType.divider);
+  List<String> get keys => [...lines.map((e) => e.key).toList(), key];
 }
 
 class Page {
@@ -152,12 +153,13 @@ class Page {
 class Line {
   late int size;
   late int weight;
-  final bool bold;
+  late bool bold;
   final LineType type;
   final List<Text> textList;
   final QrCode? qrCode;
   final BarCode? barCode;
   final String key;
+  late bool show;
 
   Line({
     this.size = 0,
@@ -168,6 +170,7 @@ class Line {
     this.qrCode,
     this.barCode,
     this.key = '',
+    this.show = true,
   });
 
   factory Line.fromJson(Map<String, dynamic> json) {
@@ -190,6 +193,7 @@ class Line {
               (json['barCode'] ?? json['BarCode']) as Map<String, dynamic>,
             ),
       key: (json['key'] ?? json['Key'] ?? '') as String,
+      show: (json['show'] ?? json['Show'] ?? true) as bool,
     );
   }
 
@@ -283,13 +287,13 @@ class QrCode {
 }
 
 class Text {
-  final String content;
+  late String content;
   final int flex;
   final int width;
   final Align align;
   final String gap;
 
-  const Text({
+  Text({
     required this.content,
     this.flex = 0,
     this.width = 0,
