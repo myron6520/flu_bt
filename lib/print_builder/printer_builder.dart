@@ -47,6 +47,12 @@ class PrintBuilder {
     if (Platform.isAndroid) {
       return ffi.DynamicLibrary.open('libprint.so');
     }
+    // iOS: static archive (.a) is linked into the app; symbols resolve via the
+    // process image, not dlopen. Ensure the pod links libprint and exports
+    // BuildFromPageJSONRaw / BuildTextLinePlain / FreeBuffer (C linkage).
+    if (Platform.isIOS) {
+      return ffi.DynamicLibrary.process();
+    }
     if (Platform.isMacOS) {
       final executableDir = File(Platform.resolvedExecutable).parent.path;
       final candidatePaths = <String>[
