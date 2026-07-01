@@ -202,7 +202,6 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         result.success(mapOf("status" to true, "code" to 0, "msg" to "BLE断开成功"))
       }
       "write"->{
-        Log.e(TAG, "onMethodCall: 写入数据", )
         val arguments = call.arguments as Map<*, *>
         val uuid = arguments["uuid"] as? String ?: ""
         val data = arguments["data"] as ByteArray
@@ -587,7 +586,6 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       status: Int
     ) {
       super.onCharacteristicWrite(gatt, characteristic, status)
-      Log.e(TAG, "onCharacteristicWrite: 写入数据完成  $status", )
       if(gatt != null&&characteristic!=null){
         invokeMethod("onCharacteristicWrite",mapOf("uuid" to gatt.device.address,
                 "characteristicUUID" to characteristic.uuid.toString(), "status" to status))
