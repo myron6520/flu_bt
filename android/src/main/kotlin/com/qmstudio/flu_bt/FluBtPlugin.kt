@@ -161,6 +161,8 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       "connect"->{
         val arguments = call.arguments as Map<*, *>
         val uuid = arguments["uuid"] as? String ?: ""
+        var useSPP = arguments["useSPP"] as? Boolean ?: false
+        Log.e(TAG, "${call.method}:${call.arguments} ")
         val device = peripherals[uuid] ?: try {
           bluetoothAdapter.getRemoteDevice(uuid)
         } catch (e: IllegalArgumentException) {
@@ -171,15 +173,11 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
           return
         }
         peripherals[uuid] = device
-        if (isClassicDevice(device)) {
+        if (useSPP) {
           val connectResult = connectClassicInternal(device)
           result.success(connectResult)
         } else {
-          if( false&&device.type == DEVICE_TYPE_DUAL&&device.bondState == BluetoothDevice.BOND_NONE){
-            device.createBond()
-          }else{
-            connectDevice(device.address)
-          }
+          connectDevice(device.address)
           result.success(mapOf("status" to true,"code" to 0,"msg" to "开始BLE连接"))
         }
       }
@@ -187,27 +185,33 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         val arguments = call.arguments as Map<*, *>
         val uuid = arguments["uuid"] as? String ?: ""
         val device = peripherals[uuid]
+
+        if(device == null){
+          result.success(mapOf("status" to false,"code" to 1,"msg" to "找不到外设"))
+          return
+        }
         if (device != null && isClassicDevice(device)) {
-          disconnectClassicInternal(uuid)
-          invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_DISCONNECTED))
+
           result.success(mapOf("status" to true, "code" to 0, "msg" to "SPP断开成功"))
           return
         }
         val gatt = bluetoothGatts[uuid]
-        if(gatt == null){
-          result.success(mapOf("status" to false,"code" to 1,"msg" to "找不到外设"))
-          return
+        if(gatt != null){
+          gatt.disconnect()
         }
-        gatt.disconnect()
-        result.success(mapOf("status" to true, "code" to 0, "msg" to "BLE断开成功"))
+        disconnectClassicInternal(uuid)
+        invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_DISCONNECTED))
+        result.success(mapOf("status" to true, "code" to 0, "msg" to "断开成功"))
       }
       "write"->{
         val arguments = call.arguments as Map<*, *>
         val uuid = arguments["uuid"] as? String ?: ""
+        var useSPP = arguments["useSPP"] as? Boolean ?: false
         val data = arguments["data"] as ByteArray
+        Log.e(TAG, "${call.method}:${call.arguments} ")
         val characteristicUUID:String = (arguments["characteristicUUID"] ?: "") as String
         val device = peripherals[uuid]
-        if (device != null && isClassicDevice(device)) {
+        if (device != null && useSPP) {
           result.success(writeClassicInternal(uuid, data))
           return
         }

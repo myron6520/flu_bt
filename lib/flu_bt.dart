@@ -108,8 +108,11 @@ class FluBt {
     return Result.fromMap(result);
   }
 
-  Future<Result> connect(String uuid) async {
-    Map result = await methodChannel.invokeMethod("connect", {"uuid": uuid});
+  Future<Result> connect(String uuid, {required bool useSPP}) async {
+    Map result = await methodChannel.invokeMethod("connect", {
+      "uuid": uuid,
+      "useSPP": useSPP,
+    });
     return Result.fromMap(result);
   }
 
@@ -118,12 +121,13 @@ class FluBt {
     return Result.fromMap(result);
   }
 
-  Future<Result> write(
-      String uuid, String characteristicUUID, Uint8List data) async {
+  Future<Result> write(String uuid, String characteristicUUID, Uint8List data,
+      {required bool useSPP}) async {
     Map result = await methodChannel.invokeMethod("write", {
       "uuid": uuid,
       "characteristicUUID": characteristicUUID,
       "data": data,
+      "useSPP": useSPP,
     });
     return Result.fromMap(result);
   }

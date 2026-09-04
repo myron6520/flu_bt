@@ -9,7 +9,8 @@ import 'package:flutter/services.dart';
 class FluWriter {
   FluWriter._() {
     fluBt = FluBt();
-    methodSubscription = fluBt.methodStream.listen((method) => _onMethodCall(method));
+    methodSubscription =
+        fluBt.methodStream.listen((method) => _onMethodCall(method));
   }
   static FluWriter? _instance;
   static FluWriter get instance => _instance ??= FluWriter._();
@@ -65,7 +66,7 @@ class FluWriter {
       }
       int endIdx = min(20, dataToWrite.length);
       List<int> data = dataToWrite.sublist(0, endIdx);
-      fluBt.write(peripheral.uuid, "", Uint8List.fromList(data));
+      fluBt.write(peripheral.uuid, "", Uint8List.fromList(data), useSPP: false);
       dataToWrite.removeRange(0, endIdx);
     } else {
       _sendingInfos[uuid] = false;
