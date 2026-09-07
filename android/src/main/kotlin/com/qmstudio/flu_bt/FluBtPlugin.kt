@@ -36,10 +36,11 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import java.io.IOException
-import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 
 /** FluBtPlugin */
@@ -143,6 +144,7 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       ///Android BLE does not support stopping/starting scans more than 5 times in 30 seconds.
       "startScan"->{
         if(isScanning){
+          result.success(mapOf("status" to true,"code" to 0,"msg" to "already scanning"))
           return
         }
         isScanning = true
@@ -150,19 +152,17 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
           .setScanMode(SCAN_MODE_LOW_LATENCY)
           .build()
         bluetoothAdapter.bluetoothLeScanner.startScan(null,scanSettings,this)
+        result.success(mapOf("status" to true,"code" to 0,"msg" to "startScan"))
       }
       "stopScan"->{
-        if(!isScanning){
-          return
-        }
-        isScanning = false
-        bluetoothAdapter.bluetoothLeScanner.stopScan(this)
+        stopLeScan()
+        result.success(mapOf("status" to true,"code" to 0,"msg" to "stopScan"))
       }
       "connect"->{
         val arguments = call.arguments as Map<*, *>
         val uuid = arguments["uuid"] as? String ?: ""
         var useSPP = arguments["useSPP"] as? Boolean ?: false
-        Log.e(TAG, "${call.method}:${call.arguments} ")
+        Log.e(TAG, "${call.method}: uuid=$uuid useSPP=$useSPP")
         val device = peripherals[uuid] ?: try {
           bluetoothAdapter.getRemoteDevice(uuid)
         } catch (e: IllegalArgumentException) {
@@ -174,8 +174,11 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         }
         peripherals[uuid] = device
         if (useSPP) {
-          val connectResult = connectClassicInternal(device)
-          result.success(connectResult)
+          stopLeScan()
+          sppExecutor.execute {
+            val connectResult = connectClassicInternal(device)
+            replyOnMain(result, connectResult)
+          }
         } else {
           connectDevice(device.address)
           result.success(mapOf("status" to true,"code" to 0,"msg" to "开始BLE连接"))
@@ -190,9 +193,12 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
           result.success(mapOf("status" to false,"code" to 1,"msg" to "找不到外设"))
           return
         }
-        if (device != null && isClassicDevice(device)) {
-
-          result.success(mapOf("status" to true, "code" to 0, "msg" to "SPP断开成功"))
+        if (classicSockets.containsKey(uuid)) {
+          sppExecutor.execute {
+            disconnectClassicInternal(uuid)
+            invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_DISCONNECTED))
+            replyOnMain(result, mapOf("status" to true, "code" to 0, "msg" to "SPP断开成功"))
+          }
           return
         }
         val gatt = bluetoothGatts[uuid]
@@ -208,11 +214,14 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
         val uuid = arguments["uuid"] as? String ?: ""
         var useSPP = arguments["useSPP"] as? Boolean ?: false
         val data = arguments["data"] as ByteArray
-        Log.e(TAG, "${call.method}:${call.arguments} ")
+        Log.e(TAG, "${call.method}: uuid=$uuid useSPP=$useSPP size=${data.size}")
         val characteristicUUID:String = (arguments["characteristicUUID"] ?: "") as String
         val device = peripherals[uuid]
         if (device != null && useSPP) {
-          result.success(writeClassicInternal(uuid, data))
+          sppExecutor.execute {
+            val writeResult = writeClassicInternal(uuid, data)
+            replyOnMain(result, writeResult)
+          }
           return
         }
         val gatt = bluetoothGatts[uuid]
@@ -284,7 +293,10 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
               "name" to (it.name ?: ""),
               "uuid" to it.address,
               "deviceType" to  (it.type),
-              "state" to 2,
+              "state" to if (classicSockets.containsKey(it.address) || bluetoothGatts.containsKey(it.address))
+                BluetoothProfile.STATE_CONNECTED
+              else
+                BluetoothProfile.STATE_DISCONNECTED,
             ))
             peripherals[it.address] = it
           }
@@ -324,8 +336,15 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
   private var isScanning = false
   private val peripherals = mutableMapOf<String,BluetoothDevice>()
   private val bluetoothGatts = mutableMapOf<String,BluetoothGatt>()
-  private val classicSockets = mutableMapOf<String, BluetoothSocket>()
-  private val classicReadThreads = mutableMapOf<String, Thread>()
+  private val classicSockets = ConcurrentHashMap<String, BluetoothSocket>()
+  private val classicReadThreads = ConcurrentHashMap<String, Thread>()
+  private val sppExecutor = Executors.newSingleThreadExecutor()
+
+  private fun replyOnMain(result: Result, value: Any?) {
+    Handler(Looper.getMainLooper()).post {
+      result.success(value)
+    }
+  }
 
   private fun isClassicDevice(device: BluetoothDevice): Boolean {
     return false
@@ -338,19 +357,28 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       return mapOf("status" to false, "code" to 2, "msg" to "设备未配对")
     }
     disconnectClassicInternal(uuid)
-    return try {
-      bluetoothAdapter.cancelDiscovery()
-      val socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-      socket.connect()
-      classicSockets[uuid] = socket
-      startClassicReadLoop(uuid, socket)
-      invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_CONNECTED))
-      mapOf("status" to true, "code" to 0, "msg" to "SPP连接成功")
-    } catch (e: IOException){
-      Log.e(TAG, "connectClassic error", e)
-      disconnectClassicInternal(uuid)
-      mapOf("status" to false, "code" to 3, "msg" to "SPP连接失败:${e.message}")
+    bluetoothAdapter.cancelDiscovery()
+    var lastError: Exception? = null
+    for (secure in listOf(false, true)) {
+      try {
+        val socket = if (secure) {
+          device.createRfcommSocketToServiceRecord(SPP_UUID)
+        } else {
+          device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+        }
+        socket.connect()
+        classicSockets[uuid] = socket
+        startClassicReadLoop(uuid, socket)
+        invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_CONNECTED))
+        Log.i(TAG, "SPP connected uuid=$uuid secure=$secure")
+        return mapOf("status" to true, "code" to 0, "msg" to "SPP连接成功")
+      } catch (e: IOException) {
+        lastError = e
+        Log.e(TAG, "connectClassic secure=$secure error", e)
+        disconnectClassicInternal(uuid)
+      }
     }
+    return mapOf("status" to false, "code" to 3, "msg" to "SPP连接失败:${lastError?.message}")
   }
 
   private fun writeClassicInternal(uuid: String, data: ByteArray): Map<String, Any> {
@@ -359,8 +387,14 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
       return mapOf("status" to false, "code" to 2, "msg" to "SPP未连接")
     }
     return try {
-      socket.outputStream.write(data)
-      socket.outputStream.flush()
+      val out = socket.outputStream
+      var offset = 0
+      val chunk = 256
+      while (offset < data.size) {
+        val len = minOf(chunk, data.size - offset)
+        out.write(data, offset, len)
+        offset += len
+      }
       invokeMethod("onClassicWrite",mapOf("uuid" to uuid, "status" to true))
       mapOf("status" to true, "code" to 0, "msg" to "SPP发送成功")
     } catch (e: IOException){
@@ -380,34 +414,41 @@ class FluBtPlugin: FlutterPlugin, MethodCallHandler, ActivityAware , ScanCallbac
     }
   }
 
+  private fun stopLeScan() {
+    if (!isScanning) {
+      return
+    }
+    isScanning = false
+    try {
+      bluetoothAdapter.bluetoothLeScanner.stopScan(this)
+    } catch (e: Exception) {
+      Log.e(TAG, "stopLeScan error", e)
+    }
+  }
+
   private fun startClassicReadLoop(uuid: String, socket: BluetoothSocket){
     val oldThread = classicReadThreads.remove(uuid)
     oldThread?.interrupt()
     val readThread = Thread {
-      val buffer = ByteArray(1024)
-      var inputStream: InputStream? = null
       try {
-        inputStream = socket.inputStream
-        while (!Thread.currentThread().isInterrupted && socket.isConnected){
+        val inputStream = socket.inputStream
+        val buffer = ByteArray(1024)
+        while (!Thread.currentThread().isInterrupted) {
           val len = inputStream.read(buffer)
-          if(len <= 0){
-            continue
+          if (len < 0) {
+            break
           }
-          val data = buffer.copyOfRange(0, len)
-          invokeMethod("didReceiveData", mapOf(
-            "uuid" to uuid,
-            "characteristicUUID" to "spp",
-            "data" to data
-          ))
+          if (len == 0) {
+            Thread.sleep(50)
+          }
         }
-      } catch (e: IOException){
+      } catch (_: InterruptedException) {
+      } catch (e: IOException) {
         Log.e(TAG, "startClassicReadLoop exit: ${e.message}")
-      } finally {
-        disconnectClassicInternal(uuid)
-        invokeMethod("peripheralStateChanged", mapOf("uuid" to uuid, "state" to BluetoothProfile.STATE_DISCONNECTED))
       }
     }
     readThread.name = "flu_bt_spp_read_$uuid"
+    readThread.isDaemon = true
     readThread.start()
     classicReadThreads[uuid] = readThread
   }
